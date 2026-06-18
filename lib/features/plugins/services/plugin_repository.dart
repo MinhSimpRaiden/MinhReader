@@ -17,7 +17,14 @@ class PluginRepository {
   final PluginStorage _storage;
   final PluginValidator _validator;
 
+  Future<List<PluginManifest>> getInstalledPlugins() => loadInstalled();
+
   Future<List<PluginManifest>> loadInstalled() => _storage.read();
+
+  Future<List<PluginManifest>> getEnabledPlugins() async {
+    final manifests = await loadInstalled();
+    return manifests.where((manifest) => manifest.isEnabled).toList();
+  }
 
   Future<List<PluginStaticSource>> loadInstalledSources() async {
     final manifests = await loadInstalled();
@@ -35,6 +42,33 @@ class PluginRepository {
     );
     if (result == null || result.files.single.path == null) return null;
     return installFromFile(File(result.files.single.path!));
+  }
+
+  Future<PluginManifest?> pickAndReadPlugin() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['json'],
+      withData: false,
+    );
+    if (result == null || result.files.single.path == null) return null;
+    return readManifestFromFile(File(result.files.single.path!));
+  }
+
+  Future<PluginManifest> readManifestFromFile(File file) async {
+    try {
+      final decoded = jsonDecode(await file.readAsString());
+      if (decoded is! Map<String, dynamic>) {
+        throw const PluginValidationException(
+          'File này không phải plugin MinhReader hợp lệ',
+        );
+      }
+      _validator.validateRaw(decoded);
+      return PluginManifest.fromJson(decoded);
+    } on PluginValidationException {
+      rethrow;
+    } catch (_) {
+      throw const PluginValidationException('Không thể đọc file plugin');
+    }
   }
 
   Future<PluginManifest> installFromFile(File file) async {
@@ -64,6 +98,21 @@ class PluginRepository {
     await _storage.write(updated);
     return manifest;
   }
+
+  Future<void> installPlugin(PluginManifest manifest) async {
+    _validator.validate(manifest);
+    final manifests = await loadInstalled();
+    await _storage.write([
+      manifest,
+      ...manifests.where((item) => item.id != manifest.id),
+    ]);
+  }
+
+  Future<void> enablePlugin(String pluginId) => setEnabled(pluginId, true);
+
+  Future<void> disablePlugin(String pluginId) => setEnabled(pluginId, false);
+
+  Future<void> deletePlugin(String pluginId) => delete(pluginId);
 
   Future<void> setEnabled(String pluginId, bool enabled) async {
     final manifests = await loadInstalled();

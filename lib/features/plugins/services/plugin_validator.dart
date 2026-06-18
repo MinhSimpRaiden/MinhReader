@@ -10,16 +10,21 @@ class PluginValidationException implements Exception {
 }
 
 class PluginValidator {
-  static const _forbiddenKeys = {
+  static const _forbiddenExecutableKeys = {
     'script',
     'javascript',
     'eval',
     'executable',
-    'dartCode',
-    'jsCode',
+    'code',
+    'dartcode',
+    'jscode',
+  };
+
+  static const _forbiddenSecretKeys = {
     'cookie',
     'authorization',
     'token',
+    'authtoken',
   };
 
   void validateRaw(Map<String, dynamic> json) {
@@ -39,9 +44,6 @@ class PluginValidator {
     if (!{'static_json', 'api_json'}.contains(manifest.sourceType)) {
       throw const PluginValidationException('Plugin không hợp lệ');
     }
-    if (manifest.license.trim().isEmpty) {
-      throw const PluginValidationException('Plugin thiếu giấy phép');
-    }
     for (final key in manifest.headers.keys) {
       final lower = key.toLowerCase();
       if (lower.contains('authorization') ||
@@ -60,7 +62,9 @@ class PluginValidator {
   void _rejectExecutableKeys(dynamic value) {
     if (value is Map) {
       for (final entry in value.entries) {
-        if (_forbiddenKeys.contains('${entry.key}'.toLowerCase())) {
+        final key = '${entry.key}'.toLowerCase();
+        if (_forbiddenExecutableKeys.contains(key) ||
+            _forbiddenSecretKeys.any((forbidden) => key.contains(forbidden))) {
           throw const PluginValidationException(
             'Plugin không chạy mã thực thi',
           );

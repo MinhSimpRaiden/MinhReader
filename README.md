@@ -1,5 +1,19 @@
 # MinhReader
 
+## Quản Lý Plugin Nguồn Truyện
+
+- Màn `Nguồn truyện` chia rõ `Nguồn local`, `Nguồn demo` và `Plugin`.
+- Vào `Cài đặt` > `Quản lý plugin nguồn truyện` hoặc mở trực tiếp màn `Nguồn truyện` để quản lý plugin.
+- Cách thêm plugin local: chọn `+ Thêm plugin`, chọn `Chọn file plugin JSON`, xem preview an toàn, rồi chọn `Cài plugin`.
+- Preview plugin hiển thị tên, version, tác giả, mô tả, loại nội dung, loại nguồn, giấy phép và cảnh báo an toàn.
+- `Dán URL plugin` hiện là placeholder cho phase sau, chưa tải plugin từ internet.
+- Plugin đã cài được lưu trong app documents tại `installed_plugins.json`.
+- Menu từng plugin hỗ trợ `Bật plugin`, `Tắt plugin`, `Xem thông tin` và `Xóa plugin`.
+- Plugin bị tắt sẽ không được tìm kiếm trong `Tìm trong plugin`. Xóa plugin chỉ xóa manifest khỏi danh sách đã cài, không xóa truyện đã thêm vào thư viện.
+- Manifest JSON an toàn phải có `id`, `name`, `version`, `contentType` (`text`, `comic`, `mixed`) và `sourceType` (`static_json`, `api_json`). Thiếu license vẫn được đọc nhưng UI sẽ cảnh báo người dùng.
+- Validator từ chối manifest có field nguy hiểm như `script`, `javascript`, `eval`, `code`, `executable`, cookie hoặc auth token hardcode. Plugin MinhReader là cấu hình JSON, không chạy code thực thi.
+- Giới hạn hiện tại: plugin online/API thật chưa được bật, chưa có marketplace, không scrape website, không bypass bảo vệ nội dung và không chạy mã plugin.
+
 ## Truyện Tranh Offline
 
 - MinhReader hỗ trợ nền tảng truyện tranh/manga/manhwa offline local qua file `.cbz` hoặc `.zip` hợp pháp trên thiết bị của người dùng.

@@ -10,7 +10,8 @@ class PluginStorage {
     : _directoryProvider =
           directoryProvider ?? getApplicationDocumentsDirectory;
 
-  static const fileName = 'minh_reader_plugins.json';
+  static const fileName = 'installed_plugins.json';
+  static const legacyFileName = 'minh_reader_plugins.json';
 
   final Future<Directory> Function() _directoryProvider;
 
@@ -20,7 +21,14 @@ class PluginStorage {
   }
 
   Future<List<PluginManifest>> read() async {
-    final dataFile = await file();
+    var dataFile = await file();
+    if (!await dataFile.exists()) {
+      final directory = await _directoryProvider();
+      final legacyFile = File(
+        '${directory.path}${Platform.pathSeparator}$legacyFileName',
+      );
+      if (await legacyFile.exists()) dataFile = legacyFile;
+    }
     if (!await dataFile.exists()) return const [];
     final decoded = jsonDecode(await dataFile.readAsString());
     if (decoded is! Map<String, dynamic>) return const [];

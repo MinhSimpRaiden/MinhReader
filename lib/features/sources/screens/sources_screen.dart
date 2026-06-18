@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../library/providers/app_controller.dart';
 import '../../library/screens/story_detail_screen.dart';
 import '../../plugins/models/plugin_manifest.dart';
+import '../../plugins/screens/add_plugin_screen.dart';
 import '../../plugins/services/plugin_repository.dart';
 import '../../plugins/services/plugin_validator.dart';
 import '../models/source_models.dart';
@@ -26,8 +27,12 @@ class _SourcesScreenState extends State<SourcesScreen> {
   List<PluginManifest> _plugins = const [];
   bool _isSearching = false;
   bool _isPluginBusy = false;
+  String _selectedPluginId = '__all__';
 
-  Iterable<StorySource> get _searchableSources =>
+  Iterable<StorySource> get _localSources =>
+      _registry.sources.where((source) => source.type == SourceType.local);
+
+  Iterable<StorySource> get _demoSources =>
       _registry.sources.where((source) => source.type == SourceType.mock);
 
   @override
@@ -54,50 +59,35 @@ class _SourcesScreenState extends State<SourcesScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                Text(
-                  'Danh sách nguồn',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                ..._registry.sources.map(_SourceTile.new),
+                _SectionTitle('Nguồn local'),
+                ..._localSources.map(_SourceTile.new),
+                const SizedBox(height: 24),
+                _SectionTitle('Nguồn demo'),
+                ..._demoSources.map(_SourceTile.new),
                 const SizedBox(height: 28),
                 _PluginSection(
                   plugins: _plugins,
                   isBusy: _isPluginBusy,
-                  onAdd: _installPlugin,
+                  onAdd: _openAddPlugin,
                   onAddSample: _installSamplePlugins,
                   onToggle: _togglePlugin,
                   onDelete: _deletePlugin,
+                  onInfo: _showPluginInfo,
                 ),
                 const SizedBox(height: 28),
-                Text(
-                  'Tìm từ nguồn',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Nguồn này chỉ dùng dữ liệu mẫu offline, không gọi internet.',
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _queryController,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    labelText: 'Tìm từ nguồn',
-                  ),
+                _SearchPanel(
+                  queryController: _queryController,
+                  isSearching: _isSearching,
+                  plugins: _plugins,
+                  selectedPluginId: _selectedPluginId,
+                  onPluginChanged: (value) {
+                    if (value != null) {
+                      setState(() => _selectedPluginId = value);
+                    }
+                  },
+                  onSearchAll: () => _searchDemo(_queryController.text),
+                  onSearchPlugin: () => _searchPlugins(_queryController.text),
                   onSubmitted: _searchDemo,
-                ),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: _isSearching
-                      ? null
-                      : () => _searchDemo(_queryController.text),
-                  icon: const Icon(Icons.search),
-                  label: const Text('Tìm từ nguồn'),
                 ),
                 const SizedBox(height: 16),
                 if (_isSearching)
@@ -122,10 +112,27 @@ class _SourcesScreenState extends State<SourcesScreen> {
   Future<void> _searchDemo(String query) async {
     setState(() => _isSearching = true);
     final results = <SourceSearchResult>[];
-    for (final source in _searchableSources) {
+    for (final source in _demoSources) {
       results.addAll(await source.searchStories(query));
     }
     for (final source in await _pluginRepository.loadInstalledSources()) {
+      results.addAll(await source.searchStories(query));
+    }
+    if (!mounted) return;
+    setState(() {
+      _results = results;
+      _isSearching = false;
+    });
+  }
+
+  Future<void> _searchPlugins(String query) async {
+    setState(() => _isSearching = true);
+    final results = <SourceSearchResult>[];
+    final sources = await _pluginRepository.loadInstalledSources();
+    for (final source in sources) {
+      if (_selectedPluginId != '__all__' && source.id != _selectedPluginId) {
+        continue;
+      }
       results.addAll(await source.searchStories(query));
     }
     if (!mounted) return;
@@ -160,17 +167,21 @@ class _SourcesScreenState extends State<SourcesScreen> {
   }
 
   Future<void> _loadPlugins() async {
-    final plugins = await _pluginRepository.loadInstalled();
+    final plugins = await _pluginRepository.getInstalledPlugins();
     if (!mounted) return;
     setState(() => _plugins = plugins);
   }
 
-  Future<void> _installPlugin() async {
-    await _runPluginAction(() async {
-      final manifest = await _pluginRepository.pickAndInstallPlugin();
-      if (manifest == null) return;
-      _showMessage('Đã thêm plugin: ${manifest.name}');
-    });
+  Future<void> _openAddPlugin() async {
+    final installed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => AddPluginScreen(repository: _pluginRepository),
+      ),
+    );
+    if (installed == true) {
+      await _loadPlugins();
+      await _searchDemo(_queryController.text);
+    }
   }
 
   Future<void> _installSamplePlugins() async {
@@ -187,12 +198,14 @@ class _SourcesScreenState extends State<SourcesScreen> {
 
   Future<void> _togglePlugin(PluginManifest plugin, bool enabled) async {
     await _runPluginAction(
-      () => _pluginRepository.setEnabled(plugin.id, enabled),
+      () => enabled
+          ? _pluginRepository.enablePlugin(plugin.id)
+          : _pluginRepository.disablePlugin(plugin.id),
     );
   }
 
   Future<void> _deletePlugin(PluginManifest plugin) async {
-    await _runPluginAction(() => _pluginRepository.delete(plugin.id));
+    await _runPluginAction(() => _pluginRepository.deletePlugin(plugin.id));
   }
 
   Future<void> _runPluginAction(Future<void> Function() action) async {
@@ -210,11 +223,35 @@ class _SourcesScreenState extends State<SourcesScreen> {
     }
   }
 
-  void _showMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  Future<void> _showPluginInfo(PluginManifest plugin) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(plugin.name),
+        content: SingleChildScrollView(
+          child: Text(
+            [
+              'Version: ${plugin.version}',
+              'Tác giả: ${plugin.author}',
+              'Loại nội dung: ${_pluginContentLabel(plugin)}',
+              'Trạng thái: ${plugin.isEnabled ? 'Plugin đang bật' : 'Plugin đang tắt'}',
+              'Giấy phép: ${plugin.license.trim().isEmpty ? 'Chưa khai báo' : plugin.license}',
+              'Nguồn dữ liệu: ${plugin.sourceType}',
+              '',
+              plugin.description,
+              '',
+              'Plugin này không chạy mã thực thi, chỉ dùng cấu hình JSON an toàn',
+            ].join('\n'),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
   }
 
   StorySource? _firstSourceById(List<StorySource> sources, String sourceId) {
@@ -222,6 +259,120 @@ class _SourcesScreenState extends State<SourcesScreen> {
       if (source.id == sourceId) return source;
     }
     return null;
+  }
+
+  String _pluginContentLabel(PluginManifest plugin) {
+    return switch (plugin.contentType) {
+      'comic' => 'Truyện tranh',
+      'mixed' => 'Hỗn hợp',
+      _ => 'Truyện chữ',
+    };
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title,
+        style: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+class _SearchPanel extends StatelessWidget {
+  const _SearchPanel({
+    required this.queryController,
+    required this.isSearching,
+    required this.plugins,
+    required this.selectedPluginId,
+    required this.onPluginChanged,
+    required this.onSearchAll,
+    required this.onSearchPlugin,
+    required this.onSubmitted,
+  });
+
+  final TextEditingController queryController;
+  final bool isSearching;
+  final List<PluginManifest> plugins;
+  final String selectedPluginId;
+  final ValueChanged<String?> onPluginChanged;
+  final VoidCallback onSearchAll;
+  final VoidCallback onSearchPlugin;
+  final ValueChanged<String> onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabledPlugins = plugins.where((plugin) => plugin.isEnabled).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle('Tìm từ nguồn'),
+        const Text('Nguồn demo và plugin chỉ dùng dữ liệu hợp pháp/offline.'),
+        const SizedBox(height: 12),
+        TextField(
+          controller: queryController,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.search),
+            labelText: 'Tìm từ nguồn',
+          ),
+          onSubmitted: onSubmitted,
+        ),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: isSearching ? null : onSearchAll,
+          icon: const Icon(Icons.search),
+          label: const Text('Tìm từ nguồn'),
+        ),
+        const SizedBox(height: 24),
+        _SectionTitle('Tìm trong plugin'),
+        DropdownButtonFormField<String>(
+          initialValue: selectedPluginId,
+          decoration: const InputDecoration(labelText: 'Plugin'),
+          items: [
+            const DropdownMenuItem(
+              value: '__all__',
+              child: Text('Tất cả plugin đang bật'),
+            ),
+            for (final plugin in enabledPlugins)
+              DropdownMenuItem(value: plugin.id, child: Text(plugin.name)),
+          ],
+          onChanged: onPluginChanged,
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: isSearching ? null : onSearchPlugin,
+          icon: const Icon(Icons.extension_outlined),
+          label: const Text('Tìm trong plugin'),
+        ),
+        if (plugins.isNotEmpty && enabledPlugins.isEmpty) ...[
+          const SizedBox(height: 8),
+          const Text('Nguồn này chưa được bật'),
+        ],
+        if (plugins.isEmpty) ...[
+          const SizedBox(height: 8),
+          const Text(
+            'Plugin đã được cài. Tính năng đọc dữ liệu từ plugin sẽ được hoàn thiện ở bước tiếp theo.',
+          ),
+        ],
+      ],
+    );
   }
 }
 
@@ -233,6 +384,7 @@ class _PluginSection extends StatelessWidget {
     required this.onAddSample,
     required this.onToggle,
     required this.onDelete,
+    required this.onInfo,
   });
 
   final List<PluginManifest> plugins;
@@ -241,21 +393,23 @@ class _PluginSection extends StatelessWidget {
   final VoidCallback onAddSample;
   final void Function(PluginManifest plugin, bool enabled) onToggle;
   final ValueChanged<PluginManifest> onDelete;
+  final ValueChanged<PluginManifest> onInfo;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _SectionTitle('Plugin'),
         Text(
           'Plugin nguồn truyện',
           style: Theme.of(
             context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         const Text(
-          'Plugin này không chạy mã thực thi, chỉ dùng cấu hình an toàn.',
+          'Plugin này không chạy mã thực thi, chỉ dùng cấu hình JSON an toàn',
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -264,8 +418,8 @@ class _PluginSection extends StatelessWidget {
           children: [
             FilledButton.icon(
               onPressed: isBusy ? null : onAdd,
-              icon: const Icon(Icons.extension_outlined),
-              label: const Text('Thêm plugin'),
+              icon: const Icon(Icons.add),
+              label: const Text('+ Thêm plugin'),
             ),
             OutlinedButton.icon(
               onPressed: isBusy ? null : onAddSample,
@@ -275,48 +429,85 @@ class _PluginSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
+        Text(
+          'Plugin đã cài',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
         if (plugins.isEmpty)
           const Text('Chưa có plugin đã cài')
         else
-          ...plugins.map((plugin) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                tileColor: Theme.of(context).colorScheme.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                leading: const Icon(Icons.extension_outlined),
-                title: Text(plugin.name),
-                subtitle: Text(
-                  '${plugin.description}\nGiấy phép: ${plugin.license}\nNguồn dữ liệu: ${plugin.sourceType}',
-                ),
-                isThreeLine: true,
-                trailing: Wrap(
-                  spacing: 4,
-                  children: [
-                    IconButton(
-                      tooltip: plugin.isEnabled ? 'Tắt plugin' : 'Bật plugin',
-                      onPressed: isBusy
-                          ? null
-                          : () => onToggle(plugin, !plugin.isEnabled),
-                      icon: Icon(
-                        plugin.isEnabled
-                            ? Icons.toggle_on_outlined
-                            : Icons.toggle_off_outlined,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Xóa plugin',
-                      onPressed: isBusy ? null : () => onDelete(plugin),
-                      icon: const Icon(Icons.delete_outline),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
+          ...plugins.map(
+            (plugin) => _PluginTile(
+              plugin: plugin,
+              isBusy: isBusy,
+              onToggle: onToggle,
+              onDelete: onDelete,
+              onInfo: onInfo,
+            ),
+          ),
       ],
+    );
+  }
+}
+
+class _PluginTile extends StatelessWidget {
+  const _PluginTile({
+    required this.plugin,
+    required this.isBusy,
+    required this.onToggle,
+    required this.onDelete,
+    required this.onInfo,
+  });
+
+  final PluginManifest plugin;
+  final bool isBusy;
+  final void Function(PluginManifest plugin, bool enabled) onToggle;
+  final ValueChanged<PluginManifest> onDelete;
+  final ValueChanged<PluginManifest> onInfo;
+
+  @override
+  Widget build(BuildContext context) {
+    final contentLabel = switch (plugin.contentType) {
+      'comic' => 'Truyện tranh',
+      'mixed' => 'Hỗn hợp',
+      _ => 'Truyện chữ',
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        tileColor: Theme.of(context).colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        leading: const Icon(Icons.extension_outlined),
+        title: Text(plugin.name),
+        subtitle: Text(
+          '${plugin.description}\nVersion: ${plugin.version} - Tác giả: ${plugin.author}\n$contentLabel - ${plugin.isEnabled ? 'Plugin đang bật' : 'Plugin đang tắt'}\nGiấy phép: ${plugin.license.trim().isEmpty ? 'Chưa khai báo' : plugin.license}\nNguồn dữ liệu: ${plugin.sourceType}',
+        ),
+        isThreeLine: true,
+        trailing: PopupMenuButton<String>(
+          enabled: !isBusy,
+          onSelected: (value) {
+            switch (value) {
+              case 'toggle':
+                onToggle(plugin, !plugin.isEnabled);
+              case 'info':
+                onInfo(plugin);
+              case 'delete':
+                onDelete(plugin);
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'toggle',
+              child: Text(plugin.isEnabled ? 'Tắt plugin' : 'Bật plugin'),
+            ),
+            const PopupMenuItem(value: 'info', child: Text('Xem thông tin')),
+            const PopupMenuItem(value: 'delete', child: Text('Xóa plugin')),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -429,13 +620,7 @@ class SourceStoryDetailScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Text(
-                  'Danh sách chương',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
+                _SectionTitle('Danh sách chương'),
                 ...chapters.map((chapter) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),

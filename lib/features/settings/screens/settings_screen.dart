@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/local/local_database.dart';
 import '../../account/screens/account_sync_screen.dart';
 import '../../library/providers/app_controller.dart';
+import '../../sources/screens/sources_screen.dart';
 import '../services/backup_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -103,12 +104,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   label: const Text('Reset cài đặt đọc về mặc định'),
                 ),
                 const SizedBox(height: 28),
-                Text(
-                  'Tài khoản & Đồng bộ',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
+                _SettingsSectionTitle('Tài khoản & Đồng bộ'),
                 const SizedBox(height: 8),
                 const Text(
                   'Chỉ dùng offline. Cloud chưa được cấu hình và dữ liệu local vẫn được giữ trên thiết bị này.',
@@ -119,13 +115,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: const Icon(Icons.account_circle_outlined),
                   label: const Text('Tài khoản & Đồng bộ'),
                 ),
-                const SizedBox(height: 28),
-                Text(
-                  'Sao lưu dữ liệu',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _isBusy ? null : _openPluginManager,
+                  icon: const Icon(Icons.extension_outlined),
+                  label: const Text('Quản lý plugin nguồn truyện'),
                 ),
+                const SizedBox(height: 28),
+                _SettingsSectionTitle('Sao lưu dữ liệu'),
                 const SizedBox(height: 12),
                 FilledButton.icon(
                   onPressed: _isBusy ? null : _exportBackup,
@@ -160,6 +157,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const AccountSyncScreen()));
+  }
+
+  void _openPluginManager() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SourcesScreen()));
   }
 
   Future<void> _exportBackup() async {
@@ -248,5 +251,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _SettingsSectionTitle extends StatelessWidget {
+  const _SettingsSectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(
+        context,
+      ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+    );
   }
 }

@@ -2,13 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:minh_reader/features/plugins/models/plugin_manifest.dart';
 import 'package:minh_reader/features/comic/services/comic_storage_service.dart';
+import 'package:minh_reader/features/plugins/models/plugin_manifest.dart';
 import 'package:minh_reader/features/plugins/services/plugin_repository.dart';
 import 'package:minh_reader/features/plugins/services/plugin_static_source.dart';
 import 'package:minh_reader/features/plugins/services/plugin_storage.dart';
 import 'package:minh_reader/features/plugins/services/plugin_validator.dart';
 import 'package:minh_reader/features/sources/services/source_import_service.dart';
+import 'package:minh_reader/features/sources/services/source_registry.dart';
 
 void main() {
   test('validate plugin hợp lệ', () {
@@ -16,21 +17,32 @@ void main() {
   });
 
   test('reject plugin thiếu id name version', () {
-    final json = _validTextPlugin()..remove('id');
+    for (final key in ['id', 'name', 'version']) {
+      final json = _validTextPlugin()..remove(key);
 
-    expect(
-      () => PluginValidator().validateRaw(json),
-      throwsA(isA<PluginValidationException>()),
-    );
+      expect(
+        () => PluginValidator().validateRaw(json),
+        throwsA(isA<PluginValidationException>()),
+      );
+    }
   });
 
-  test('reject plugin cố khai báo executable script', () {
-    final json = _validTextPlugin()..['script'] = 'alert(1)';
+  test('reject plugin có field script javascript eval code', () {
+    for (final key in ['script', 'javascript', 'eval', 'code']) {
+      final json = _validTextPlugin()..[key] = 'bad';
 
-    expect(
-      () => PluginValidator().validateRaw(json),
-      throwsA(isA<PluginValidationException>()),
-    );
+      expect(
+        () => PluginValidator().validateRaw(json),
+        throwsA(isA<PluginValidationException>()),
+      );
+    }
+  });
+
+  test('plugin thiếu license vẫn hợp lệ', () {
+    final json = _validTextPlugin()..remove('license');
+
+    PluginValidator().validateRaw(json);
+    expect(PluginManifest.fromJson(json).license, isEmpty);
   });
 
   test('import plugin local và search sample plugin', () async {
@@ -50,6 +62,36 @@ void main() {
 
     expect(manifest.id, 'sample_test_text');
     expect(results, isNotEmpty);
+  });
+
+  test('install enable disable delete plugin', () async {
+    final tempDir = await Directory.systemTemp.createTemp('minh_plugin_life_');
+    addTearDown(() => tempDir.delete(recursive: true));
+    final repository = PluginRepository(
+      storage: PluginStorage(directoryProvider: () async => tempDir),
+    );
+
+    await repository.installFromJson(_validTextPlugin());
+    expect(await repository.getInstalledPlugins(), hasLength(1));
+    expect(await repository.getEnabledPlugins(), hasLength(1));
+
+    await repository.disablePlugin('sample_test_text');
+    expect(await repository.getEnabledPlugins(), isEmpty);
+
+    await repository.enablePlugin('sample_test_text');
+    expect(await repository.getEnabledPlugins(), hasLength(1));
+
+    await repository.deletePlugin('sample_test_text');
+    expect(await repository.getInstalledPlugins(), isEmpty);
+  });
+
+  test('installed plugin không làm hỏng source local demo cũ', () {
+    final registry = SourceRegistry();
+
+    expect(registry.byId('local_txt'), isNotNull);
+    expect(registry.byId('local_epub'), isNotNull);
+    expect(registry.byId('public_domain_demo'), isNotNull);
+    expect(registry.byId('mock_comic'), isNotNull);
   });
 
   test('plugin source lấy detail chapter list và text content', () async {
