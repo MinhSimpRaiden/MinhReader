@@ -1,0 +1,38 @@
+{
+  "id": "sample_public_domain_comic",
+  "name": "Sample Public Domain Comic",
+  "version": "1.0.0",
+  "author": "MinhReader Demo",
+  "description": "Plugin mẫu truyện tranh offline/static JSON, page demo được app tạo thành PNG local.",
+  "contentType": "comic",
+  "sourceType": "static_json",
+  "license": "CC0-1.0",
+  "language": "vi",
+  "isAdultContent": false,
+  "attribution": "MinhReader Demo",
+  "stories": [
+    {
+      "id": "sample-comic-garden",
+      "title": "Khu Vườn Mưa Sao",
+      "author": "MinhReader Demo",
+      "description": "Truyện tranh demo dùng để kiểm thử comic plugin offline.",
+      "contentType": "comic",
+      "chapters": [
+        {
+          "id": "c1",
+          "title": "Cánh Cổng Sáng",
+          "index": 0,
+          "contentKind": "images",
+          "imagePaths": ["garden-c1-p1", "garden-c1-p2", "garden-c1-p3"]
+        },
+        {
+          "id": "c2",
+          "title": "Bậc Thềm Sau Mưa",
+          "index": 1,
+          "contentKind": "images",
+          "imagePaths": ["garden-c2-p1", "garden-c2-p2", "garden-c2-p3"]
+        }
+      ]
+    }
+  ]
+}

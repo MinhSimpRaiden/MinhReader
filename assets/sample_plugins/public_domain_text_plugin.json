@@ -1,0 +1,38 @@
+{
+  "id": "sample_public_domain_text",
+  "name": "Sample Public Domain Text",
+  "version": "1.0.0",
+  "author": "MinhReader Demo",
+  "description": "Plugin mẫu truyện chữ offline/static JSON, nội dung demo tự viết.",
+  "contentType": "text",
+  "sourceType": "static_json",
+  "license": "CC0-1.0",
+  "language": "vi",
+  "isAdultContent": false,
+  "attribution": "MinhReader Demo",
+  "stories": [
+    {
+      "id": "sample-text-lighthouse",
+      "title": "Ngọn Hải Đăng Nhỏ",
+      "author": "MinhReader Demo",
+      "description": "Một truyện chữ ngắn dùng để kiểm thử plugin static JSON.",
+      "contentType": "text",
+      "chapters": [
+        {
+          "id": "c1",
+          "title": "Đêm Trực Đầu Tiên",
+          "index": 0,
+          "contentKind": "text",
+          "content": "Đêm đầu tiên trong trạm gác, Minh nghe tiếng sóng vỗ đều dưới chân đá. Cậu thắp ngọn đèn nhỏ và ghi vào sổ: mọi hành trình đều cần một điểm sáng để quay về."
+        },
+        {
+          "id": "c2",
+          "title": "Tín Hiệu Bình Minh",
+          "index": 1,
+          "contentKind": "text",
+          "content": "Khi bình minh lên, mặt biển chuyển sang màu bạc. Minh hiểu rằng công việc lặng lẽ nhất đôi khi lại giữ cho nhiều người được an tâm đi tiếp."
+        }
+      ]
+    }
+  ]
+}
