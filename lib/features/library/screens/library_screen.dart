@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/date_formatters.dart';
 import '../../../core/utils/source_formatters.dart';
 import '../../import/screens/import_screen.dart';
+import '../../plugins/screens/plugin_search_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../sources/screens/sources_screen.dart';
 import '../models/story.dart';
@@ -36,6 +37,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
       appBar: AppBar(
         title: const Text('Thư viện'),
         actions: [
+          IconButton(
+            tooltip: 'Tìm plugin',
+            onPressed: _openPluginSearch,
+            icon: const Icon(Icons.travel_explore_outlined),
+          ),
           IconButton(
             tooltip: 'Nguồn truyện',
             onPressed: () => Navigator.of(
@@ -76,6 +82,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           const SizedBox(height: 12),
                         ],
                         _LibraryToolbar(
+                          storyCount: controller.stories.length,
                           query: _query,
                           sortMode: _sortMode,
                           filterMode: _filterMode,
@@ -89,7 +96,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         const SizedBox(height: 16),
                         Expanded(
                           child: controller.stories.isEmpty
-                              ? _EmptyLibrary(onImport: _openImport)
+                              ? _EmptyLibrary(
+                                  onImport: _openImport,
+                                  onPluginSearch: _openPluginSearch,
+                                )
                               : stories.isEmpty
                               ? const _NoLibraryResult()
                               : LayoutBuilder(
@@ -188,10 +198,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
       context,
     ).push(MaterialPageRoute(builder: (_) => const ImportScreen()));
   }
+
+  Future<void> _openPluginSearch() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const PluginSearchScreen()));
+  }
 }
 
 class _LibraryToolbar extends StatelessWidget {
   const _LibraryToolbar({
+    required this.storyCount,
     required this.query,
     required this.sortMode,
     required this.filterMode,
@@ -200,6 +217,7 @@ class _LibraryToolbar extends StatelessWidget {
     required this.onFilterChanged,
   });
 
+  final int storyCount;
   final String query;
   final LibrarySortMode sortMode;
   final LibraryFilterMode filterMode;
@@ -210,7 +228,22 @@ class _LibraryToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Thư viện của bạn',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            Text('$storyCount truyện'),
+          ],
+        ),
+        const SizedBox(height: 12),
         TextField(
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.search),
@@ -510,9 +543,10 @@ class _NoLibraryResult extends StatelessWidget {
 }
 
 class _EmptyLibrary extends StatelessWidget {
-  const _EmptyLibrary({required this.onImport});
+  const _EmptyLibrary({required this.onImport, required this.onPluginSearch});
 
   final VoidCallback onImport;
+  final VoidCallback onPluginSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -545,6 +579,12 @@ class _EmptyLibrary extends StatelessWidget {
               onPressed: onImport,
               icon: const Icon(Icons.upload_file),
               label: const Text('Nhập truyện'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: onPluginSearch,
+              icon: const Icon(Icons.travel_explore_outlined),
+              label: const Text('Tìm từ plugin'),
             ),
           ],
         ),

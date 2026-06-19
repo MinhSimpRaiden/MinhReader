@@ -3,6 +3,9 @@
 ## Plugin Catalog Runtime
 
 - MinhReader hỗ trợ nền tảng `api_json` an toàn cho plugin có API JSON hợp pháp, được khai báo rõ trong manifest.
+- Màn `Tìm truyện từ plugin` là nơi tìm truyện trong danh mục đã đồng bộ từ các plugin đang bật.
+- Cách dùng: cài plugin, bật plugin, đồng bộ danh mục, vào `Tìm truyện từ plugin`, nhập tên truyện/tác giả/thể loại rồi mở truyện.
+- Search plugin chỉ dùng cache metadata, không tải nội dung chương và không tải ảnh truyện tranh khi tìm kiếm.
 - Plugin `api_json` có thể khai báo `homepage`, `baseUrl`, `features`, `endpoints`, `pagination` và `rateLimit`.
 - Trong màn `Nguồn truyện` > `Plugin`, plugin `api_json` đã bật có các thao tác `Đồng bộ danh mục`, `Làm mới danh mục`, `Truyện đã cache` và `Xóa cache`.
 - Đồng bộ danh mục chỉ tải metadata truyện theo trang từ endpoint `catalog`, tối đa `maxPagesPerSync`, và lưu vào `plugin_catalog_cache.json`.

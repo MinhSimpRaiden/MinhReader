@@ -5,6 +5,7 @@ import '../../library/screens/story_detail_screen.dart';
 import '../../plugins/models/plugin_manifest.dart';
 import '../../plugins/screens/add_plugin_screen.dart';
 import '../../plugins/screens/plugin_catalog_screen.dart';
+import '../../plugins/screens/plugin_search_screen.dart';
 import '../../plugins/services/plugin_catalog_service.dart';
 import '../../plugins/services/plugin_repository.dart';
 import '../../plugins/services/plugin_validator.dart';
@@ -55,7 +56,18 @@ class _SourcesScreenState extends State<SourcesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nguồn truyện')),
+      appBar: AppBar(
+        title: const Text('Nguồn truyện'),
+        actions: [
+          IconButton(
+            tooltip: 'Tìm truyện từ plugin',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PluginSearchScreen()),
+            ),
+            icon: const Icon(Icons.travel_explore_outlined),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
