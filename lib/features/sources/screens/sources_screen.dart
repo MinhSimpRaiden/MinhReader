@@ -4,6 +4,8 @@ import '../../library/providers/app_controller.dart';
 import '../../library/screens/story_detail_screen.dart';
 import '../../plugins/models/plugin_manifest.dart';
 import '../../plugins/screens/add_plugin_screen.dart';
+import '../../plugins/screens/plugin_catalog_screen.dart';
+import '../../plugins/services/plugin_catalog_service.dart';
 import '../../plugins/services/plugin_repository.dart';
 import '../../plugins/services/plugin_validator.dart';
 import '../models/source_models.dart';
@@ -22,9 +24,11 @@ class _SourcesScreenState extends State<SourcesScreen> {
   final _registry = SourceRegistry();
   final _importService = SourceImportService();
   final _pluginRepository = PluginRepository();
+  final _catalogService = PluginCatalogService();
   final _queryController = TextEditingController();
   List<SourceSearchResult> _results = const [];
   List<PluginManifest> _plugins = const [];
+  final Map<String, PluginCatalogStats> _catalogStats = {};
   bool _isSearching = false;
   bool _isPluginBusy = false;
   String _selectedPluginId = '__all__';
@@ -65,7 +69,7 @@ class _SourcesScreenState extends State<SourcesScreen> {
                 _SectionTitle('Nguồn demo'),
                 ..._demoSources.map(_SourceTile.new),
                 const SizedBox(height: 28),
-                _PluginSection(
+                _PluginCatalogSection(
                   plugins: _plugins,
                   isBusy: _isPluginBusy,
                   onAdd: _openAddPlugin,
@@ -73,6 +77,11 @@ class _SourcesScreenState extends State<SourcesScreen> {
                   onToggle: _togglePlugin,
                   onDelete: _deletePlugin,
                   onInfo: _showPluginInfo,
+                  catalogStats: _catalogStats,
+                  onSyncCatalog: _syncPluginCatalog,
+                  onRefreshCatalog: _refreshPluginCatalog,
+                  onOpenCatalog: _openPluginCatalog,
+                  onClearCatalog: _clearPluginCatalog,
                 ),
                 const SizedBox(height: 28),
                 _SearchPanel(
@@ -170,6 +179,28 @@ class _SourcesScreenState extends State<SourcesScreen> {
     final plugins = await _pluginRepository.getInstalledPlugins();
     if (!mounted) return;
     setState(() => _plugins = plugins);
+    await _loadCatalogStats(plugins);
+  }
+
+  Future<void> _loadCatalogStats(List<PluginManifest> plugins) async {
+    final stats = <String, PluginCatalogStats>{};
+    for (final plugin in plugins.where(
+      (item) => item.sourceType == 'api_json',
+    )) {
+      final entry = await _catalogService.getCacheEntry(plugin.id);
+      stats[plugin.id] = PluginCatalogStats(
+        storyCount: entry.stories.length,
+        lastSyncAt: entry.lastSyncAt,
+        pageSynced: entry.pageSynced,
+        hasNextPage: entry.hasNextPage,
+      );
+    }
+    if (!mounted) return;
+    setState(() {
+      _catalogStats
+        ..clear()
+        ..addAll(stats);
+    });
   }
 
   Future<void> _openAddPlugin() async {
@@ -206,6 +237,34 @@ class _SourcesScreenState extends State<SourcesScreen> {
 
   Future<void> _deletePlugin(PluginManifest plugin) async {
     await _runPluginAction(() => _pluginRepository.deletePlugin(plugin.id));
+  }
+
+  Future<void> _syncPluginCatalog(PluginManifest plugin) async {
+    await _runPluginAction(() async {
+      final result = await _catalogService.syncCatalog(plugin.id);
+      _showMessage('Đã đồng bộ ${result.syncedCount} truyện');
+    });
+  }
+
+  Future<void> _refreshPluginCatalog(PluginManifest plugin) async {
+    await _runPluginAction(() async {
+      final result = await _catalogService.refreshCatalog(plugin.id);
+      _showMessage('Đã đồng bộ ${result.syncedCount} truyện');
+    });
+  }
+
+  Future<void> _clearPluginCatalog(PluginManifest plugin) async {
+    await _runPluginAction(() async {
+      await _catalogService.clearCache(plugin.id);
+      _showMessage('Đã xóa cache danh mục');
+    });
+  }
+
+  Future<void> _openPluginCatalog(PluginManifest plugin) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => PluginCatalogScreen(plugin: plugin)),
+    );
+    await _loadPlugins();
   }
 
   Future<void> _runPluginAction(Future<void> Function() action) async {
@@ -376,6 +435,213 @@ class _SearchPanel extends StatelessWidget {
   }
 }
 
+class _PluginCatalogSection extends StatelessWidget {
+  const _PluginCatalogSection({
+    required this.plugins,
+    required this.isBusy,
+    required this.onAdd,
+    required this.onAddSample,
+    required this.onToggle,
+    required this.onDelete,
+    required this.onInfo,
+    required this.catalogStats,
+    required this.onSyncCatalog,
+    required this.onRefreshCatalog,
+    required this.onOpenCatalog,
+    required this.onClearCatalog,
+  });
+
+  final List<PluginManifest> plugins;
+  final bool isBusy;
+  final VoidCallback onAdd;
+  final VoidCallback onAddSample;
+  final void Function(PluginManifest plugin, bool enabled) onToggle;
+  final ValueChanged<PluginManifest> onDelete;
+  final ValueChanged<PluginManifest> onInfo;
+  final Map<String, PluginCatalogStats> catalogStats;
+  final ValueChanged<PluginManifest> onSyncCatalog;
+  final ValueChanged<PluginManifest> onRefreshCatalog;
+  final ValueChanged<PluginManifest> onOpenCatalog;
+  final ValueChanged<PluginManifest> onClearCatalog;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle('Plugin'),
+        Text(
+          'Plugin nguồn truyện',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        const Text('Plugin là cấu hình JSON an toàn, không chạy mã thực thi.'),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: isBusy ? null : onAdd,
+              icon: const Icon(Icons.add),
+              label: const Text('+ Thêm plugin'),
+            ),
+            OutlinedButton.icon(
+              onPressed: isBusy ? null : onAddSample,
+              icon: const Icon(Icons.science_outlined),
+              label: const Text('Thêm plugin mẫu'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Plugin đã cài',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        if (plugins.isEmpty)
+          const Text('Chưa có plugin đã cài')
+        else
+          ...plugins.map(
+            (plugin) => _PluginCatalogTile(
+              plugin: plugin,
+              isBusy: isBusy,
+              stats: catalogStats[plugin.id],
+              onToggle: onToggle,
+              onDelete: onDelete,
+              onInfo: onInfo,
+              onSyncCatalog: onSyncCatalog,
+              onRefreshCatalog: onRefreshCatalog,
+              onOpenCatalog: onOpenCatalog,
+              onClearCatalog: onClearCatalog,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _PluginCatalogTile extends StatelessWidget {
+  const _PluginCatalogTile({
+    required this.plugin,
+    required this.isBusy,
+    required this.stats,
+    required this.onToggle,
+    required this.onDelete,
+    required this.onInfo,
+    required this.onSyncCatalog,
+    required this.onRefreshCatalog,
+    required this.onOpenCatalog,
+    required this.onClearCatalog,
+  });
+
+  final PluginManifest plugin;
+  final bool isBusy;
+  final PluginCatalogStats? stats;
+  final void Function(PluginManifest plugin, bool enabled) onToggle;
+  final ValueChanged<PluginManifest> onDelete;
+  final ValueChanged<PluginManifest> onInfo;
+  final ValueChanged<PluginManifest> onSyncCatalog;
+  final ValueChanged<PluginManifest> onRefreshCatalog;
+  final ValueChanged<PluginManifest> onOpenCatalog;
+  final ValueChanged<PluginManifest> onClearCatalog;
+
+  @override
+  Widget build(BuildContext context) {
+    final contentLabel = switch (plugin.contentType) {
+      'comic' => 'Truyện tranh',
+      'mixed' => 'Hỗn hợp',
+      _ => 'Truyện chữ',
+    };
+    final isApiPlugin = plugin.sourceType == 'api_json';
+    final catalogLine = isApiPlugin
+        ? '\nCache: ${stats?.storyCount ?? 0} truyện'
+              ' - Trang: ${stats?.pageSynced ?? 0}'
+              '${stats?.lastSyncAt == null ? '' : '\nLần đồng bộ gần nhất: ${stats!.lastSyncAt!.toLocal()}'}'
+        : '';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        tileColor: Theme.of(context).colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        leading: const Icon(Icons.extension_outlined),
+        title: Text(plugin.name),
+        subtitle: Text(
+          '${plugin.description}\nVersion: ${plugin.version} - Tác giả: ${plugin.author}\n$contentLabel - ${plugin.isEnabled ? 'Plugin đang bật' : 'Plugin đang tắt'}\nGiấy phép: ${plugin.license.trim().isEmpty ? 'Chưa khai báo' : plugin.license}\nNguồn dữ liệu: ${plugin.sourceType}$catalogLine',
+        ),
+        isThreeLine: true,
+        trailing: PopupMenuButton<String>(
+          enabled: !isBusy,
+          onSelected: (value) {
+            switch (value) {
+              case 'toggle':
+                onToggle(plugin, !plugin.isEnabled);
+              case 'info':
+                onInfo(plugin);
+              case 'syncCatalog':
+                onSyncCatalog(plugin);
+              case 'refreshCatalog':
+                onRefreshCatalog(plugin);
+              case 'openCatalog':
+                onOpenCatalog(plugin);
+              case 'clearCatalog':
+                onClearCatalog(plugin);
+              case 'delete':
+                onDelete(plugin);
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'toggle',
+              child: Text(plugin.isEnabled ? 'Tắt plugin' : 'Bật plugin'),
+            ),
+            const PopupMenuItem(value: 'info', child: Text('Xem thông tin')),
+            if (isApiPlugin && plugin.isEnabled) ...[
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'syncCatalog',
+                child: Text('Đồng bộ danh mục'),
+              ),
+              const PopupMenuItem(
+                value: 'refreshCatalog',
+                child: Text('Làm mới danh mục'),
+              ),
+              const PopupMenuItem(
+                value: 'openCatalog',
+                child: Text('Truyện đã cache'),
+              ),
+              const PopupMenuItem(
+                value: 'clearCatalog',
+                child: Text('Xóa cache'),
+              ),
+            ],
+            const PopupMenuItem(value: 'delete', child: Text('Xóa plugin')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class PluginCatalogStats {
+  const PluginCatalogStats({
+    required this.storyCount,
+    required this.lastSyncAt,
+    required this.pageSynced,
+    required this.hasNextPage,
+  });
+
+  final int storyCount;
+  final DateTime? lastSyncAt;
+  final int pageSynced;
+  final bool hasNextPage;
+}
+
+// ignore: unused_element
 class _PluginSection extends StatelessWidget {
   const _PluginSection({
     required this.plugins,

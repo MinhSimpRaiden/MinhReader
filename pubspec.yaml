@@ -39,6 +39,7 @@ dependencies:
   epubx: ^4.0.0
   image: 3.3.0
   archive: ^3.6.1
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

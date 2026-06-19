@@ -50,6 +50,147 @@ Optional fields:
 - `rateLimit`
 - `attribution`
 
+## API JSON Catalog Manifest
+
+`api_json` plugins must describe every endpoint explicitly. MinhReader only calls declared JSON endpoints and never scrapes HTML or executes plugin code.
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "demo_catalog_source",
+  "name": "Demo Catalog Source",
+  "version": "1.0.0",
+  "author": "MinhReader",
+  "description": "Authorized API JSON source",
+  "contentType": "mixed",
+  "sourceType": "api_json",
+  "language": "vi",
+  "license": "Demo / Authorized API",
+  "homepage": "https://example.com",
+  "baseUrl": "https://example.com/api",
+  "features": {
+    "catalog": true,
+    "search": true,
+    "latest": true,
+    "detail": true,
+    "chapters": true,
+    "readText": true,
+    "readComic": true
+  },
+  "endpoints": {
+    "catalog": "/stories?page={page}&limit={limit}",
+    "latest": "/stories/latest?page={page}&limit={limit}",
+    "search": "/stories/search?q={query}&page={page}&limit={limit}",
+    "detail": "/stories/{storyId}",
+    "chapters": "/stories/{storyId}/chapters",
+    "chapterContent": "/chapters/{chapterId}",
+    "chapterImages": "/comic-chapters/{chapterId}/images"
+  },
+  "pagination": {
+    "type": "page",
+    "startPage": 1,
+    "defaultLimit": 20,
+    "maxPagesPerSync": 5
+  },
+  "rateLimit": {
+    "requestsPerMinute": 30
+  }
+}
+```
+
+Validation rules:
+
+- `baseUrl` is required for `api_json` and must be `http` or `https`.
+- `features.catalog` requires `endpoints.catalog`.
+- `features.detail` requires `endpoints.detail`.
+- `features.chapters` requires `endpoints.chapters`.
+- `features.readText` requires `endpoints.chapterContent`.
+- `features.readComic` requires `endpoints.chapterImages`.
+- Dangerous fields such as `script`, `javascript`, `eval`, `code`, `executable`, cookie, authorization, token, or authToken are rejected.
+- Missing `license` is allowed for compatibility, but UI must warn the user.
+
+## Catalog Runtime
+
+Catalog response:
+
+```json
+{
+  "page": 1,
+  "limit": 20,
+  "hasNextPage": true,
+  "stories": [
+    {
+      "id": "story_001",
+      "title": "Story title",
+      "author": "Author",
+      "description": "Description",
+      "coverUrl": "https://example.com/cover.jpg",
+      "contentType": "text",
+      "status": "ongoing",
+      "genres": ["fantasy"],
+      "updatedAt": "2026-06-18T10:00:00Z"
+    }
+  ]
+}
+```
+
+Catalog sync stores metadata only in `plugin_catalog_cache.json`: pluginId, stories, lastSyncAt, pageSynced, and hasNextPage. It must not download chapter text or comic images.
+
+Detail response:
+
+```json
+{
+  "id": "story_001",
+  "title": "Story title",
+  "author": "Author",
+  "description": "Full description",
+  "coverUrl": "https://example.com/cover.jpg",
+  "contentType": "text",
+  "status": "ongoing",
+  "genres": ["fantasy"]
+}
+```
+
+Chapter list response:
+
+```json
+{
+  "storyId": "story_001",
+  "chapters": [
+    {
+      "id": "chapter_001",
+      "title": "Chapter 1",
+      "index": 0,
+      "updatedAt": "2026-06-18T10:00:00Z"
+    }
+  ]
+}
+```
+
+Text chapter response:
+
+```json
+{
+  "id": "chapter_001",
+  "title": "Chapter 1",
+  "index": 0,
+  "contentType": "text",
+  "content": "Chapter content..."
+}
+```
+
+Comic images response:
+
+```json
+{
+  "id": "comic_chapter_001",
+  "title": "Chapter 1",
+  "index": 0,
+  "contentType": "comic",
+  "images": ["https://example.com/001.jpg"]
+}
+```
+
 ## Static Stories
 
 Text story:
@@ -109,7 +250,6 @@ For static demo comic plugins, `imagePaths` may be page identifiers. MinhReader 
 The validator must reject:
 
 - Missing `id`, `name`, or `version`.
-- Missing license.
 - Unsupported `contentType` or `sourceType`.
 - `script`, `javascript`, `eval`, `executable`, `dartCode`, or similar keys.
 - Hardcoded `authorization`, `cookie`, or `token` headers.

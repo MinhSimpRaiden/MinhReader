@@ -2,6 +2,7 @@ import '../../sources/models/source_models.dart';
 
 class PluginManifest {
   const PluginManifest({
+    this.schemaVersion = 1,
     required this.id,
     required this.name,
     required this.version,
@@ -12,16 +13,19 @@ class PluginManifest {
     required this.license,
     required this.language,
     required this.stories,
+    this.features = const PluginFeatures(),
+    this.pagination = const PluginPagination(),
     this.baseUrl,
     this.homepage,
     this.isAdultContent = false,
     this.endpoints = const {},
     this.headers = const {},
-    this.rateLimit,
+    this.rateLimit = const PluginRateLimit(),
     this.attribution,
     this.isEnabled = true,
   });
 
+  final int schemaVersion;
   final String id;
   final String name;
   final String version;
@@ -33,16 +37,19 @@ class PluginManifest {
   final String license;
   final String? homepage;
   final String language;
+  final PluginFeatures features;
+  final PluginPagination pagination;
   final bool isAdultContent;
   final Map<String, String> endpoints;
   final Map<String, String> headers;
-  final int? rateLimit;
+  final PluginRateLimit rateLimit;
   final String? attribution;
   final bool isEnabled;
   final List<PluginStory> stories;
 
   PluginManifest copyWith({bool? isEnabled}) {
     return PluginManifest(
+      schemaVersion: schemaVersion,
       id: id,
       name: name,
       version: version,
@@ -54,6 +61,8 @@ class PluginManifest {
       license: license,
       homepage: homepage,
       language: language,
+      features: features,
+      pagination: pagination,
       isAdultContent: isAdultContent,
       endpoints: endpoints,
       headers: headers,
@@ -66,6 +75,7 @@ class PluginManifest {
 
   factory PluginManifest.fromJson(Map<String, dynamic> json) {
     return PluginManifest(
+      schemaVersion: json['schemaVersion'] as int? ?? 1,
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
       version: json['version'] as String? ?? '',
@@ -77,10 +87,12 @@ class PluginManifest {
       license: json['license'] as String? ?? '',
       homepage: json['homepage'] as String?,
       language: json['language'] as String? ?? 'vi',
+      features: PluginFeatures.fromJson(json['features']),
+      pagination: PluginPagination.fromJson(json['pagination']),
       isAdultContent: json['isAdultContent'] as bool? ?? false,
       endpoints: _stringMap(json['endpoints']),
       headers: _stringMap(json['headers']),
-      rateLimit: json['rateLimit'] as int?,
+      rateLimit: PluginRateLimit.fromJson(json['rateLimit']),
       attribution: json['attribution'] as String?,
       isEnabled: json['isEnabled'] as bool? ?? true,
       stories: (json['stories'] as List<dynamic>? ?? [])
@@ -90,6 +102,7 @@ class PluginManifest {
   }
 
   Map<String, dynamic> toJson() => {
+    'schemaVersion': schemaVersion,
     'id': id,
     'name': name,
     'version': version,
@@ -101,10 +114,12 @@ class PluginManifest {
     'license': license,
     'homepage': homepage,
     'language': language,
+    'features': features.toJson(),
+    'pagination': pagination.toJson(),
     'isAdultContent': isAdultContent,
     'endpoints': endpoints,
     'headers': headers,
-    'rateLimit': rateLimit,
+    'rateLimit': rateLimit.toJson(),
     'attribution': attribution,
     'isEnabled': isEnabled,
     'stories': stories.map((story) => story.toJson()).toList(),
@@ -114,6 +129,96 @@ class PluginManifest {
     if (value is! Map) return const {};
     return value.map((key, item) => MapEntry('$key', '$item'));
   }
+}
+
+class PluginFeatures {
+  const PluginFeatures({
+    this.catalog = false,
+    this.search = false,
+    this.latest = false,
+    this.detail = false,
+    this.chapters = false,
+    this.readText = false,
+    this.readComic = false,
+  });
+
+  final bool catalog;
+  final bool search;
+  final bool latest;
+  final bool detail;
+  final bool chapters;
+  final bool readText;
+  final bool readComic;
+
+  factory PluginFeatures.fromJson(dynamic json) {
+    if (json is! Map) return const PluginFeatures();
+    return PluginFeatures(
+      catalog: json['catalog'] as bool? ?? false,
+      search: json['search'] as bool? ?? false,
+      latest: json['latest'] as bool? ?? false,
+      detail: json['detail'] as bool? ?? false,
+      chapters: json['chapters'] as bool? ?? false,
+      readText: json['readText'] as bool? ?? false,
+      readComic: json['readComic'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'catalog': catalog,
+    'search': search,
+    'latest': latest,
+    'detail': detail,
+    'chapters': chapters,
+    'readText': readText,
+    'readComic': readComic,
+  };
+}
+
+class PluginPagination {
+  const PluginPagination({
+    this.type = 'page',
+    this.startPage = 1,
+    this.defaultLimit = 20,
+    this.maxPagesPerSync = 5,
+  });
+
+  final String type;
+  final int startPage;
+  final int defaultLimit;
+  final int maxPagesPerSync;
+
+  factory PluginPagination.fromJson(dynamic json) {
+    if (json is! Map) return const PluginPagination();
+    return PluginPagination(
+      type: json['type'] as String? ?? 'page',
+      startPage: json['startPage'] as int? ?? 1,
+      defaultLimit: json['defaultLimit'] as int? ?? 20,
+      maxPagesPerSync: json['maxPagesPerSync'] as int? ?? 5,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'startPage': startPage,
+    'defaultLimit': defaultLimit,
+    'maxPagesPerSync': maxPagesPerSync,
+  };
+}
+
+class PluginRateLimit {
+  const PluginRateLimit({this.requestsPerMinute = 30});
+
+  final int requestsPerMinute;
+
+  factory PluginRateLimit.fromJson(dynamic json) {
+    if (json is int) return PluginRateLimit(requestsPerMinute: json);
+    if (json is! Map) return const PluginRateLimit();
+    return PluginRateLimit(
+      requestsPerMinute: json['requestsPerMinute'] as int? ?? 30,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'requestsPerMinute': requestsPerMinute};
 }
 
 class PluginStory {
