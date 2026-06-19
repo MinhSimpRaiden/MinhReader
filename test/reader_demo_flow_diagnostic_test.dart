@@ -52,25 +52,25 @@ void main() {
 
   test('C: ReaderPalette có contrast đọc được cho body text', () {
     for (final mode in ReaderBackgroundMode.values) {
-      final brightness = mode == ReaderBackgroundMode.black
-          ? Brightness.dark
-          : Brightness.light;
-      final background = ReaderPalette.background(mode, brightness);
-      final foreground = ReaderPalette.foreground(mode, brightness);
-      final ratio = _contrastRatio(background, foreground);
+      for (final brightness in Brightness.values) {
+        final background = ReaderPalette.background(mode, brightness);
+        final foreground = ReaderPalette.foreground(mode, brightness);
+        final ratio = _contrastRatio(background, foreground);
 
-      // ignore: avoid_print
-      print(
-        'DIAGNOSTIC palette mode=${mode.name}, '
-        'background=${_hex(background)}, foreground=${_hex(foreground)}, '
-        'contrast=${ratio.toStringAsFixed(2)}',
-      );
+        // ignore: avoid_print
+        print(
+          'DIAGNOSTIC palette mode=${mode.name}, brightness=${brightness.name}, '
+          'background=${_hex(background)}, foreground=${_hex(foreground)}, '
+          'contrast=${ratio.toStringAsFixed(2)}',
+        );
 
-      expect(
-        ratio,
-        greaterThanOrEqualTo(4.5),
-        reason: 'Body text needs WCAG AA contrast on ${mode.name}',
-      );
+        expect(
+          ratio,
+          greaterThanOrEqualTo(4.5),
+          reason:
+              'Body text needs WCAG AA contrast on ${mode.name}/${brightness.name}',
+        );
+      }
     }
   });
 

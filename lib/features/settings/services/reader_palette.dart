@@ -14,9 +14,12 @@ class ReaderPalette {
   }
 
   static Color foreground(ReaderBackgroundMode mode, Brightness brightness) {
-    if (mode == ReaderBackgroundMode.black) return const Color(0xFFECECEC);
-    return brightness == Brightness.dark
-        ? const Color(0xFFF1F1F1)
-        : const Color(0xFF202020);
+    return switch (mode) {
+      ReaderBackgroundMode.black => const Color(0xFFECECEC),
+      ReaderBackgroundMode.paper ||
+      ReaderBackgroundMode.white ||
+      ReaderBackgroundMode.sepia ||
+      ReaderBackgroundMode.gray => const Color(0xFF202020),
+    };
   }
 }
