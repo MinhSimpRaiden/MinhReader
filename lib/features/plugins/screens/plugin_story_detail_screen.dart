@@ -5,6 +5,7 @@ import '../models/plugin_manifest.dart';
 import '../models/plugin_runtime_models.dart';
 import '../services/plugin_http_client.dart';
 import '../services/plugin_runtime_service.dart';
+import 'plugin_network_comic_reader_screen.dart';
 import 'plugin_online_reader_screen.dart';
 
 class PluginStoryDetailScreen extends StatefulWidget {
@@ -77,12 +78,29 @@ class _PluginStoryDetailScreenState extends State<PluginStoryDetailScreen> {
     setState(() => _isBusy = true);
     try {
       if (_story.contentType == 'comic') {
-        await _runtimeService.getComicChapterImages(
-          widget.plugin.id,
-          chapter.id,
+        if (!widget.plugin.features.readComic ||
+            (widget.plugin.endpoints['chapterImages'] ?? '').trim().isEmpty) {
+          _showMessage('Plugin thiếu endpoint chapterImages');
+          return;
+        }
+        final initialChapterIndex = _chapters.indexWhere(
+          (item) => item.id == chapter.id,
         );
         if (!mounted) return;
-        _showMessage('Đọc ảnh online sẽ được hỗ trợ ở bước tiếp theo.');
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PluginNetworkComicReaderScreen(
+              pluginId: widget.plugin.id,
+              storyId: widget.story.storyId,
+              storyTitle: _story.title,
+              chapters: _chapters,
+              initialChapterIndex: initialChapterIndex < 0
+                  ? chapter.index
+                  : initialChapterIndex,
+              runtimeService: _runtimeService,
+            ),
+          ),
+        );
         return;
       }
       final textChapter = await _runtimeService.getTextChapterContent(

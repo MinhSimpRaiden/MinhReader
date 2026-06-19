@@ -11,7 +11,9 @@
 - Đồng bộ danh mục chỉ tải metadata truyện theo trang từ endpoint `catalog`, tối đa `maxPagesPerSync`, và lưu vào `plugin_catalog_cache.json`.
 - Cache metadata gồm id truyện, tên, tác giả, mô tả, coverUrl, contentType, trạng thái, thể loại và updatedAt. App không tải nội dung chương hoặc ảnh truyện tranh khi sync catalog.
 - Khi mở truyện đã cache, app mới gọi endpoint `detail` và `chapters`. Khi bấm chương truyện chữ, app mới gọi `chapterContent` và mở reader online tạm.
-- Comic runtime hiện parse được endpoint `chapterImages`; đọc ảnh online sẽ được hoàn thiện ở bước sau nếu ComicReader hỗ trợ network images.
+- Khi bấm chương truyện tranh từ plugin `api_json`, app gọi endpoint `chapterImages` và mở Network Comic Reader để lướt ảnh online theo chiều dọc.
+- Network Comic Reader chỉ load URL ảnh `http/https` do plugin trả về, không gửi cookie/token/auth header và hiển thị placeholder nếu URL hoặc ảnh lỗi.
+- Giới hạn hiện tại: app chưa cache ảnh truyện tranh online để đọc offline và không tải toàn bộ truyện tranh về máy.
 - Runtime chỉ gọi GET JSON tới endpoint đã khai báo, có timeout 15 giây, không scrape HTML, không crawl homepage, không chạy JavaScript/Dart code từ plugin và không gửi cookie/token/auth header hardcode.
 
 ## Quản Lý Plugin Nguồn Truyện

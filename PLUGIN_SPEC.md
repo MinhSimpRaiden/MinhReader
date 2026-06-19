@@ -191,6 +191,14 @@ Comic images response:
 }
 ```
 
+Rules for `chapterImages`:
+
+- `images` must be an array of absolute image URLs.
+- Each image URL must use `http` or `https`.
+- MinhReader displays images directly from the returned list and does not scrape HTML to discover more pages.
+- MinhReader does not send cookies, bearer tokens, hardcoded auth headers, or plugin-provided credentials when loading comic page images.
+- Invalid or unsupported image URLs should be ignored by the source, and the app will show an error placeholder instead of crashing if one is returned.
+
 ## Static Stories
 
 Text story:
