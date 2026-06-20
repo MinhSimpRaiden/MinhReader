@@ -23,6 +23,8 @@ class PluginManifest {
     this.rateLimit = const PluginRateLimit(),
     this.attribution,
     this.isEnabled = true,
+    this.installUrl,
+    this.sourceUrl,
   });
 
   final int schemaVersion;
@@ -45,9 +47,15 @@ class PluginManifest {
   final PluginRateLimit rateLimit;
   final String? attribution;
   final bool isEnabled;
+  final String? installUrl;
+  final String? sourceUrl;
   final List<PluginStory> stories;
 
-  PluginManifest copyWith({bool? isEnabled}) {
+  PluginManifest copyWith({
+    bool? isEnabled,
+    String? installUrl,
+    String? sourceUrl,
+  }) {
     return PluginManifest(
       schemaVersion: schemaVersion,
       id: id,
@@ -69,6 +77,8 @@ class PluginManifest {
       rateLimit: rateLimit,
       attribution: attribution,
       isEnabled: isEnabled ?? this.isEnabled,
+      installUrl: installUrl ?? this.installUrl,
+      sourceUrl: sourceUrl ?? this.sourceUrl,
       stories: stories,
     );
   }
@@ -95,6 +105,8 @@ class PluginManifest {
       rateLimit: PluginRateLimit.fromJson(json['rateLimit']),
       attribution: json['attribution'] as String?,
       isEnabled: json['isEnabled'] as bool? ?? true,
+      installUrl: json['installUrl'] as String?,
+      sourceUrl: json['sourceUrl'] as String?,
       stories: (json['stories'] as List<dynamic>? ?? [])
           .map((item) => PluginStory.fromJson(item as Map<String, dynamic>))
           .toList(),
@@ -122,6 +134,8 @@ class PluginManifest {
     'rateLimit': rateLimit.toJson(),
     'attribution': attribution,
     'isEnabled': isEnabled,
+    if (installUrl != null) 'installUrl': installUrl,
+    if (sourceUrl != null) 'sourceUrl': sourceUrl,
     'stories': stories.map((story) => story.toJson()).toList(),
   };
 

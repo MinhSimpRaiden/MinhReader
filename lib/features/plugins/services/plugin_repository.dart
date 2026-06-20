@@ -87,6 +87,14 @@ class PluginRepository {
     return installFromJson(decoded);
   }
 
+  Future<PluginManifest?> findInstalled(String pluginId) async {
+    final manifests = await loadInstalled();
+    for (final manifest in manifests) {
+      if (manifest.id == pluginId) return manifest;
+    }
+    return null;
+  }
+
   Future<PluginManifest> installFromJson(Map<String, dynamic> json) async {
     _validator.validateRaw(json);
     final manifest = PluginManifest.fromJson(json);
@@ -99,11 +107,23 @@ class PluginRepository {
     return manifest;
   }
 
-  Future<void> installPlugin(PluginManifest manifest) async {
+  Future<void> installPlugin(
+    PluginManifest manifest, {
+    bool preserveEnabledState = false,
+  }) async {
     _validator.validate(manifest);
     final manifests = await loadInstalled();
+    var toSave = manifest;
+    if (preserveEnabledState) {
+      for (final existing in manifests) {
+        if (existing.id == manifest.id) {
+          toSave = manifest.copyWith(isEnabled: existing.isEnabled);
+          break;
+        }
+      }
+    }
     await _storage.write([
-      manifest,
+      toSave,
       ...manifests.where((item) => item.id != manifest.id),
     ]);
   }

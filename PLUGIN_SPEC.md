@@ -49,8 +49,25 @@ Optional fields:
 - `headers`
 - `rateLimit`
 - `attribution`
+- `installUrl` (optional, set by app when installed from URL)
+- `sourceUrl` (optional, original manifest URL used during install)
 
-## API JSON Catalog Manifest
+## Install Plugin From URL
+
+Users may install a plugin by pasting a manifest URL in the app. Rules:
+
+- URL must use `http` or `https` only.
+- Rejected schemes include `file://`, `javascript:`, `data:`, `ftp:`, `about:`, and `chrome:`.
+- The URL does not need to end with `.json`, but the response body must be valid JSON.
+- The app performs a GET request with timeout 15 seconds, accepts only 2xx responses, and rejects oversized bodies.
+- The app sends only safe headers such as `Accept: application/json`. It must not send cookies, tokens, or authorization headers.
+- After download, the manifest is validated with the same rules as local file import.
+- The user must preview and explicitly tap install; the app must not auto-install after fetch.
+- If a plugin with the same `id` already exists, the user may choose to update it. Updates should preserve the previous `isEnabled` state when reasonable.
+- Older installed plugins without `installUrl` or `sourceUrl` must still deserialize correctly.
+
+Manifest JSON from URL must not contain executable code, scripts, eval fields, or hardcoded cookies/tokens/auth headers.
+
 
 `api_json` plugins must describe every endpoint explicitly. MinhReader only calls declared JSON endpoints and never scrapes HTML or executes plugin code.
 
