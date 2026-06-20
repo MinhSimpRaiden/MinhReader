@@ -26,14 +26,18 @@ class PluginSearchScreen extends StatefulWidget {
 
 class _PluginSearchScreenState extends State<PluginSearchScreen> {
   final _queryController = TextEditingController();
+
   late final PluginRepository _pluginRepository;
   late final PluginCatalogService _catalogService;
+
   List<PluginManifest> _enabledPlugins = const [];
   Map<String, List<PluginCatalogStory>> _cache = const {};
   List<PluginSearchResult> _results = const [];
+
   String? _selectedPluginId;
   PluginSearchContentFilter _contentFilter = PluginSearchContentFilter.all;
   PluginSearchSortMode _sortMode = PluginSearchSortMode.updatedDesc;
+
   bool _isLoading = true;
   bool _isSyncing = false;
   String? _syncStatus;
@@ -57,24 +61,37 @@ class _PluginSearchScreenState extends State<PluginSearchScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
+
     final plugins = (await _pluginRepository.getInstalledPlugins())
         .where((plugin) => plugin.isEnabled)
         .toList();
+
     final cache = <String, List<PluginCatalogStory>>{};
     for (final plugin in plugins) {
       cache[plugin.id] = await _catalogService.getCachedStories(plugin.id);
     }
+
     if (!mounted) return;
+
+    final selectedStillExists =
+        _selectedPluginId == null ||
+        plugins.any((plugin) => plugin.id == _selectedPluginId);
+
     setState(() {
       _enabledPlugins = plugins;
       _cache = cache;
       _isLoading = false;
+      if (!selectedStillExists) {
+        _selectedPluginId = null;
+      }
     });
+
     _applySearch();
   }
 
   void _applySearch() {
     if (!mounted) return;
+
     setState(() {
       _results = widget.searchService.search(
         plugins: _enabledPlugins,
@@ -96,22 +113,28 @@ class _PluginSearchScreenState extends State<PluginSearchScreen> {
               (plugin.endpoints['catalog']?.trim().isNotEmpty ?? false),
         )
         .toList();
+
     if (plugins.isEmpty) {
       _showMessage('Chưa có plugin nào có danh mục để đồng bộ');
       return;
     }
+
     setState(() {
       _isSyncing = true;
       _syncStatus = 'Đang đồng bộ danh mục...';
     });
+
     var success = 0;
     var failed = 0;
+
     for (var i = 0; i < plugins.length; i++) {
       final plugin = plugins[i];
       if (!mounted) return;
+
       setState(
         () => _syncStatus = 'Đang đồng bộ ${i + 1}/${plugins.length} plugin...',
       );
+
       try {
         await _catalogService.syncCatalog(plugin.id);
         success++;
@@ -119,12 +142,16 @@ class _PluginSearchScreenState extends State<PluginSearchScreen> {
         failed++;
       }
     }
+
     if (!mounted) return;
+
     setState(() {
       _isSyncing = false;
       _syncStatus = null;
     });
+
     await _load();
+
     _showMessage(
       failed == 0
           ? 'Đã đồng bộ $success plugin'
@@ -136,6 +163,7 @@ class _PluginSearchScreenState extends State<PluginSearchScreen> {
   Widget build(BuildContext context) {
     final hasEnabledPlugins = _enabledPlugins.isNotEmpty;
     final hasAnyCache = _cache.values.any((stories) => stories.isNotEmpty);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tìm truyện từ plugin'),
@@ -237,36 +265,70 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Padding(
         padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            const Icon(Icons.travel_explore, size: 34),
-            const SizedBox(width: 14),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Tìm truyện từ plugin',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 720;
+
+            final title = Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.travel_explore, size: 34),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tìm truyện từ plugin',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Tìm trong danh mục đã đồng bộ từ các plugin đang bật',
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 4),
-                  Text('Tìm trong danh mục đã đồng bộ từ các plugin đang bật'),
-                ],
-              ),
-            ),
-            FilledButton.icon(
+                ),
+              ],
+            );
+
+            final action = FilledButton.icon(
               onPressed: onSyncAll,
               icon: const Icon(Icons.sync),
               label: const Text('Đồng bộ tất cả'),
-            ),
-          ],
+            );
+
+            if (isNarrow) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  title,
+                  const SizedBox(height: 14),
+                  Align(alignment: Alignment.centerLeft, child: action),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: title),
+                const SizedBox(width: 16),
+                action,
+              ],
+            );
+          },
         ),
       ),
     );
@@ -296,89 +358,209 @@ class _SearchControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveSelectedPluginId =
+        selectedPluginId != null &&
+            plugins.any((plugin) => plugin.id == selectedPluginId)
+        ? selectedPluginId
+        : null;
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TextField(
           controller: queryController,
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.search),
             hintText: 'Nhập tên truyện, tác giả hoặc thể loại',
+            border: OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            SizedBox(
-              width: 260,
-              child: DropdownButtonFormField<String?>(
-                initialValue: selectedPluginId,
-                decoration: const InputDecoration(labelText: 'Plugin'),
-                items: [
-                  const DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text('Tất cả plugin'),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth;
+            final isNarrow = maxWidth < 760;
+
+            final pluginWidth = isNarrow
+                ? maxWidth
+                : (maxWidth * 0.34).clamp(280.0, 380.0).toDouble();
+
+            final sortWidth = isNarrow ? maxWidth : 260.0;
+
+            final contentFilterWidth = isNarrow
+                ? maxWidth
+                : (maxWidth - pluginWidth - sortWidth - 24)
+                      .clamp(260.0, 460.0)
+                      .toDouble();
+
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                SizedBox(
+                  width: pluginWidth,
+                  child: _PluginDropdown(
+                    plugins: plugins,
+                    selectedPluginId: effectiveSelectedPluginId,
+                    onChanged: onPluginChanged,
                   ),
-                  for (final plugin in plugins)
-                    DropdownMenuItem(
-                      value: plugin.id,
-                      child: Text(plugin.name),
+                ),
+                SizedBox(
+                  width: contentFilterWidth,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: _ContentTypeFilter(
+                      value: contentFilter,
+                      onChanged: onContentFilterChanged,
                     ),
-                ],
-                onChanged: onPluginChanged,
-              ),
-            ),
-            SegmentedButton<PluginSearchContentFilter>(
-              segments: const [
-                ButtonSegment(
-                  value: PluginSearchContentFilter.all,
-                  label: Text('Tất cả'),
+                  ),
                 ),
-                ButtonSegment(
-                  value: PluginSearchContentFilter.text,
-                  label: Text('Truyện chữ'),
-                ),
-                ButtonSegment(
-                  value: PluginSearchContentFilter.comic,
-                  label: Text('Truyện tranh'),
+                SizedBox(
+                  width: sortWidth,
+                  child: _SortDropdown(
+                    value: sortMode,
+                    onChanged: onSortChanged,
+                  ),
                 ),
               ],
-              selected: {contentFilter},
-              onSelectionChanged: (value) =>
-                  onContentFilterChanged(value.single),
-            ),
-            SizedBox(
-              width: 220,
-              child: DropdownButtonFormField<PluginSearchSortMode>(
-                initialValue: sortMode,
-                decoration: const InputDecoration(labelText: 'Sắp xếp'),
-                items: const [
-                  DropdownMenuItem(
-                    value: PluginSearchSortMode.updatedDesc,
-                    child: Text('Mới cập nhật'),
-                  ),
-                  DropdownMenuItem(
-                    value: PluginSearchSortMode.titleAz,
-                    child: Text('Tên A-Z'),
-                  ),
-                  DropdownMenuItem(
-                    value: PluginSearchSortMode.authorAz,
-                    child: Text('Tác giả'),
-                  ),
-                  DropdownMenuItem(
-                    value: PluginSearchSortMode.pluginName,
-                    child: Text('Nguồn plugin'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value != null) onSortChanged(value);
-                },
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ],
+    );
+  }
+}
+
+class _PluginDropdown extends StatelessWidget {
+  const _PluginDropdown({
+    required this.plugins,
+    required this.selectedPluginId,
+    required this.onChanged,
+  });
+
+  final List<PluginManifest> plugins;
+  final String? selectedPluginId;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String?>(
+      key: ValueKey('plugin-filter-$selectedPluginId-${plugins.length}'),
+      isExpanded: true,
+      initialValue: selectedPluginId,
+      decoration: const InputDecoration(
+        labelText: 'Plugin',
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      items: [
+        const DropdownMenuItem<String?>(
+          value: null,
+          child: Text(
+            'Tất cả plugin',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        for (final plugin in plugins)
+          DropdownMenuItem<String?>(
+            value: plugin.id,
+            child: Text(
+              plugin.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+      ],
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _ContentTypeFilter extends StatelessWidget {
+  const _ContentTypeFilter({required this.value, required this.onChanged});
+
+  final PluginSearchContentFilter value;
+  final ValueChanged<PluginSearchContentFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<PluginSearchContentFilter>(
+      segments: const [
+        ButtonSegment(
+          value: PluginSearchContentFilter.all,
+          label: Text('Tất cả'),
+        ),
+        ButtonSegment(
+          value: PluginSearchContentFilter.text,
+          label: Text('Truyện chữ'),
+        ),
+        ButtonSegment(
+          value: PluginSearchContentFilter.comic,
+          label: Text('Truyện tranh'),
+        ),
+      ],
+      selected: {value},
+      onSelectionChanged: (values) => onChanged(values.single),
+    );
+  }
+}
+
+class _SortDropdown extends StatelessWidget {
+  const _SortDropdown({required this.value, required this.onChanged});
+
+  final PluginSearchSortMode value;
+  final ValueChanged<PluginSearchSortMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<PluginSearchSortMode>(
+      key: ValueKey('sort-filter-$value'),
+      isExpanded: true,
+      initialValue: value,
+      decoration: const InputDecoration(
+        labelText: 'Sắp xếp',
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      items: const [
+        DropdownMenuItem(
+          value: PluginSearchSortMode.updatedDesc,
+          child: Text(
+            'Mới cập nhật',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        DropdownMenuItem(
+          value: PluginSearchSortMode.titleAz,
+          child: Text(
+            'Tên A-Z',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        DropdownMenuItem(
+          value: PluginSearchSortMode.authorAz,
+          child: Text(
+            'Tác giả',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        DropdownMenuItem(
+          value: PluginSearchSortMode.pluginName,
+          child: Text(
+            'Nguồn plugin',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+      onChanged: (value) {
+        if (value != null) onChanged(value);
+      },
     );
   }
 }
@@ -400,6 +582,7 @@ class _ResultGrid extends StatelessWidget {
             : width >= 560
             ? 2
             : 1;
+
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -426,6 +609,7 @@ class _ResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final story = result.story;
     final isComic = story.contentType == 'comic';
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -504,6 +688,7 @@ class _Cover extends StatelessWidget {
             errorBuilder: (context, error, stackTrace) =>
                 const Icon(Icons.broken_image_outlined),
           );
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: ColoredBox(
@@ -584,3 +769,4 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
+
