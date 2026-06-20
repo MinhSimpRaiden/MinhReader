@@ -96,6 +96,18 @@ class AppController extends ChangeNotifier {
     return null;
   }
 
+  Story? storyByPluginRemoteId({
+    required String pluginId,
+    required String remoteStoryId,
+  }) {
+    for (final story in _stories) {
+      if (story.pluginId == pluginId && story.remoteStoryId == remoteStoryId) {
+        return story;
+      }
+    }
+    return null;
+  }
+
   Future<Story> addStory(Story story, List<Chapter> chapters) async {
     final previousStories = _stories;
     final previousChapters = _chapters;
@@ -117,6 +129,19 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  Future<Story> addPluginTextStory(Story story, List<Chapter> chapters) async {
+    final pluginId = story.pluginId;
+    final remoteStoryId = story.remoteStoryId;
+    if (pluginId != null && remoteStoryId != null) {
+      final existing = storyByPluginRemoteId(
+        pluginId: pluginId,
+        remoteStoryId: remoteStoryId,
+      );
+      if (existing != null) return existing;
+    }
+    return addStory(story, chapters);
+  }
+
   Future<Story> addComicStory(Story story, List<ComicChapter> chapters) async {
     final previousStories = _stories;
     final previousComicChapters = _comicChapters;
@@ -133,6 +158,57 @@ class AppController extends ChangeNotifier {
       _stories = previousStories;
       _comicChapters = previousComicChapters;
       _error = 'Không thể lưu truyện tranh. Vui lòng thử lại.';
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<Story> addPluginComicStory(
+    Story story,
+    List<ComicChapter> chapters,
+  ) async {
+    final pluginId = story.pluginId;
+    final remoteStoryId = story.remoteStoryId;
+    if (pluginId != null && remoteStoryId != null) {
+      final existing = storyByPluginRemoteId(
+        pluginId: pluginId,
+        remoteStoryId: remoteStoryId,
+      );
+      if (existing != null) return existing;
+    }
+    return addComicStory(story, chapters);
+  }
+
+  Future<void> cacheRemoteChapterContent({
+    required String storyId,
+    required String chapterId,
+    required String content,
+  }) async {
+    final previousChapters = _chapters;
+    final wordCount = content
+        .split(RegExp(r'\s+'))
+        .where((word) => word.trim().isNotEmpty)
+        .length;
+    var changed = false;
+    _chapters = _chapters.map((chapter) {
+      if (chapter.storyId == storyId && chapter.id == chapterId) {
+        changed = true;
+        return chapter.copyWith(
+          content: content,
+          wordCount: wordCount,
+          contentLoaded: true,
+        );
+      }
+      return chapter;
+    }).toList();
+    if (!changed) return;
+    try {
+      await _persist();
+      _error = null;
+      notifyListeners();
+    } catch (_) {
+      _chapters = previousChapters;
+      _error = 'Không thể lưu nội dung chương đã tải.';
       notifyListeners();
       rethrow;
     }

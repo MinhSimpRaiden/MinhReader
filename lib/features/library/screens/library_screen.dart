@@ -369,7 +369,14 @@ class _StoryCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        _MiniBadge(formatSourceType(story.sourceType)),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            _MiniBadge(formatSourceType(story.sourceType)),
+                            if (story.isPluginRemote) const _MiniBadge('Online'),
+                          ],
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -434,6 +441,12 @@ class _Cover extends StatelessWidget {
     final child = path != null && File(path).existsSync()
         ? Image.file(
             File(path),
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => _CoverPlaceholder(story: story),
+          )
+        : story.coverUrl != null && story.coverUrl!.trim().isNotEmpty
+        ? Image.network(
+            story.coverUrl!,
             fit: BoxFit.cover,
             errorBuilder: (_, _, _) => _CoverPlaceholder(story: story),
           )

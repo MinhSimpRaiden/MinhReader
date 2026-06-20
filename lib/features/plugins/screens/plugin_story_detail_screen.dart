@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../library/providers/app_controller.dart';
+import '../../library/screens/story_detail_screen.dart';
 import '../models/plugin_catalog.dart';
 import '../models/plugin_manifest.dart';
 import '../models/plugin_runtime_models.dart';
 import '../services/plugin_http_client.dart';
+import '../services/plugin_library_import_service.dart';
 import '../services/plugin_runtime_service.dart';
 import 'plugin_network_comic_reader_screen.dart';
 import 'plugin_online_reader_screen.dart';
@@ -27,6 +30,7 @@ class PluginStoryDetailScreen extends StatefulWidget {
 
 class _PluginStoryDetailScreenState extends State<PluginStoryDetailScreen> {
   late final PluginRuntimeService _runtimeService;
+  final _importService = PluginLibraryImportService();
   PluginCatalogStory? _detail;
   List<PluginRuntimeChapter> _chapters = const [];
   bool _isLoading = true;
@@ -127,10 +131,59 @@ class _PluginStoryDetailScreenState extends State<PluginStoryDetailScreen> {
     }
   }
 
+  Future<void> _addToLibrary() async {
+    final controller = AppScope.of(context);
+    final existing = controller.storyByPluginRemoteId(
+      pluginId: widget.plugin.id,
+      remoteStoryId: _story.storyId,
+    );
+    if (existing != null) {
+      _openLocalStory(existing.id);
+      return;
+    }
+    if (_chapters.isEmpty) {
+      _showMessage('Chưa có danh sách chương để thêm vào thư viện');
+      return;
+    }
+    setState(() => _isBusy = true);
+    try {
+      final draft = _importService.buildDraft(
+        pluginId: widget.plugin.id,
+        story: _story,
+        chapters: _chapters,
+      );
+      final savedStory = draft.isComic
+          ? await controller.addPluginComicStory(
+              draft.story,
+              draft.comicChapters,
+            )
+          : await controller.addPluginTextStory(draft.story, draft.chapters);
+      if (!mounted) return;
+      _showMessage('Đã thêm vào thư viện');
+      _openLocalStory(savedStory.id);
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage('Không thể thêm vào thư viện');
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
+    }
+  }
+
+  void _openLocalStory(String storyId) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => StoryDetailScreen(storyId: storyId)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final controller = AppScope.watch(context);
     final story = _story;
     final isComic = story.contentType == 'comic';
+    final localStory = controller.storyByPluginRemoteId(
+      pluginId: widget.plugin.id,
+      remoteStoryId: story.storyId,
+    );
     return Scaffold(
       appBar: AppBar(title: Text(story.title)),
       body: SafeArea(
@@ -199,14 +252,26 @@ class _PluginStoryDetailScreenState extends State<PluginStoryDetailScreen> {
                       const SizedBox(height: 16),
                       Text(story.description),
                       const SizedBox(height: 18),
-                      FilledButton.icon(
-                        onPressed: null,
-                        icon: const Icon(Icons.library_add_outlined),
-                        label: const Text('Thêm vào thư viện'),
-                      ),
+                      if (localStory == null)
+                        FilledButton.icon(
+                          onPressed:
+                              _isBusy || _isLoading || _chapters.isEmpty
+                              ? null
+                              : _addToLibrary,
+                          icon: const Icon(Icons.library_add_outlined),
+                          label: const Text('Thêm vào thư viện'),
+                        )
+                      else
+                        FilledButton.icon(
+                          onPressed: () => _openLocalStory(localStory.id),
+                          icon: const Icon(Icons.library_books_outlined),
+                          label: const Text('Mở trong thư viện'),
+                        ),
                       const SizedBox(height: 8),
                       Text(
-                        'Phase này ưu tiên đọc online và cache metadata; thêm truyện api_json vào thư viện local sẽ hoàn thiện sau.',
+                        localStory == null
+                            ? 'Khi thêm vào thư viện, app chỉ lưu metadata và danh sách chương. Nội dung chương sẽ tải khi đọc.'
+                            : 'Đã có trong thư viện',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 24),

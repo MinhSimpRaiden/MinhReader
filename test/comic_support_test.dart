@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:minh_reader/features/comic/models/comic_chapter.dart';
 import 'package:minh_reader/features/comic/services/comic_import_service.dart';
 import 'package:minh_reader/features/library/models/story.dart';
+import 'package:minh_reader/features/reader/models/chapter.dart';
 import 'package:minh_reader/features/sources/models/source_models.dart';
 
 void main() {
@@ -25,6 +26,23 @@ void main() {
     });
 
     expect(story.contentType, 'text');
+    expect(story.pluginId, isNull);
+    expect(story.remoteStoryId, isNull);
+  });
+
+  test('Chapter old JSON missing remote fields is treated as loaded local', () {
+    final chapter = Chapter.fromJson({
+      'id': 'chapter-1',
+      'storyId': 'story-1',
+      'index': 0,
+      'title': 'Chuong cu',
+      'content': 'Noi dung cu',
+      'wordCount': 3,
+    });
+
+    expect(chapter.isRemote, isFalse);
+    expect(chapter.contentLoaded, isTrue);
+    expect(chapter.remoteChapterId, isNull);
   });
 
   test('Story comic serialize deserialize đúng contentType', () {
@@ -60,6 +78,8 @@ void main() {
 
     expect(restored.imagePaths, ['1.jpg', '2.jpg']);
     expect(restored.isRead, isTrue);
+    expect(restored.isRemote, isFalse);
+    expect(restored.contentLoaded, isTrue);
   });
 
   test('SourceChapter hỗ trợ contentKind images', () {

@@ -6,6 +6,10 @@ import '../../../core/utils/date_formatters.dart';
 import '../../../core/utils/source_formatters.dart';
 import '../../comic/models/comic_chapter.dart';
 import '../../comic/screens/comic_reader_screen.dart';
+import '../../plugins/models/plugin_runtime_models.dart';
+import '../../plugins/screens/plugin_network_comic_reader_screen.dart';
+import '../../plugins/services/plugin_http_client.dart';
+import '../../plugins/services/plugin_runtime_service.dart';
 import '../../reader/models/bookmark.dart';
 import '../../reader/models/chapter.dart';
 import '../../reader/screens/reader_screen.dart';
@@ -24,7 +28,9 @@ class StoryDetailScreen extends StatefulWidget {
 
 class _StoryDetailScreenState extends State<StoryDetailScreen> {
   final _coverService = CoverService();
+  final _pluginRuntimeService = PluginRuntimeService();
   String _contentQuery = '';
+  bool _isLoadingRemoteChapter = false;
 
   @override
   Widget build(BuildContext context) {
@@ -107,6 +113,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                         chapters: chapters,
                         bookmarks: bookmarks,
                         searchResults: searchResults,
+                        isBusy: _isLoadingRemoteChapter,
                         onQueryChanged: (value) =>
                             setState(() => _contentQuery = value),
                         onOpenChapter: (chapterIndex, {scrollRatio}) =>
@@ -177,11 +184,66 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     return '$prefix${chapter.content.substring(start, end).replaceAll('\n', ' ')}$suffix';
   }
 
-  void _openReader(
+  Future<void> _openReader(
     BuildContext context,
     int chapterIndex, {
     double? scrollRatio,
-  }) {
+  }) async {
+    if (_isLoadingRemoteChapter) return;
+    final controller = AppScope.of(context);
+    final chapters = controller.chaptersFor(widget.storyId);
+    if (chapterIndex < 0 || chapterIndex >= chapters.length) return;
+    final chapter = chapters[chapterIndex];
+    if (chapter.isRemote && !chapter.contentLoaded) {
+      final pluginId = chapter.pluginId;
+      final remoteChapterId = chapter.remoteChapterId;
+      if (pluginId == null || remoteChapterId == null) {
+        _showPluginUnavailable(context);
+        return;
+      }
+      setState(() => _isLoadingRemoteChapter = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đang tải nội dung chương...')),
+      );
+      try {
+        final textChapter = await _pluginRuntimeService.getTextChapterContent(
+          pluginId,
+          remoteChapterId,
+        );
+        if (textChapter.content.trim().isEmpty) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Chương chưa có nội dung')),
+          );
+          return;
+        }
+        await controller.cacheRemoteChapterContent(
+          storyId: widget.storyId,
+          chapterId: chapter.id,
+          content: textChapter.content,
+        );
+      } on PluginHttpException catch (error) {
+        if (!context.mounted) return;
+        if (error.message.contains('Không tìm thấy plugin') ||
+            error.message.contains('chưa được bật')) {
+          _showPluginUnavailable(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Không thể tải nội dung chương')),
+          );
+        }
+        return;
+      } catch (_) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể tải nội dung chương')),
+        );
+        return;
+      } finally {
+        if (mounted) setState(() => _isLoadingRemoteChapter = false);
+      }
+    }
+    if (!context.mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ReaderScreen(
@@ -198,12 +260,58 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     int chapterIndex, {
     double? scrollRatio,
   }) {
+    final controller = AppScope.of(context);
+    final story = controller.storyById(widget.storyId);
+    final chapters = controller.comicChaptersFor(widget.storyId);
+    if (story?.isPluginRemote == true && chapters.isNotEmpty) {
+      final pluginId = story!.pluginId;
+      if (pluginId == null) {
+        _showPluginUnavailable(context);
+        return;
+      }
+      final runtimeChapters = [
+        for (final chapter in chapters)
+          if (chapter.remoteChapterId != null)
+            PluginRuntimeChapter(
+              id: chapter.remoteChapterId!,
+              title: chapter.title,
+              index: chapter.index,
+            ),
+      ];
+      if (runtimeChapters.isEmpty) {
+        _showPluginUnavailable(context);
+        return;
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PluginNetworkComicReaderScreen(
+            pluginId: pluginId,
+            storyId: story.remoteStoryId ?? story.id,
+            storyTitle: story.title,
+            chapters: runtimeChapters,
+            initialChapterIndex: chapterIndex,
+            runtimeService: _pluginRuntimeService,
+          ),
+        ),
+      );
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ComicReaderScreen(
           storyId: widget.storyId,
           initialChapterIndex: chapterIndex,
           initialScrollRatio: scrollRatio ?? 0,
+        ),
+      ),
+    );
+  }
+
+  void _showPluginUnavailable(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Plugin nguồn không còn khả dụng. Vui lòng bật hoặc cài lại plugin.',
         ),
       ),
     );
@@ -368,10 +476,16 @@ class _StoryInfoPanel extends StatelessWidget {
               runSpacing: 8,
               children: [
                 Chip(label: Text(formatSourceType(story.sourceType))),
+                if (story.isPluginRemote) const Chip(label: Text('Online')),
                 Chip(label: Text('${story.chapterCount} chương')),
                 Chip(label: Text('${(progress * 100).round()}%')),
               ],
             ),
+            if (story.description != null &&
+                story.description!.trim().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(story.description!),
+            ],
             const SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(999),
@@ -419,6 +533,7 @@ class _StoryContentPanel extends StatelessWidget {
     required this.chapters,
     required this.bookmarks,
     required this.searchResults,
+    required this.isBusy,
     required this.onQueryChanged,
     required this.onOpenChapter,
     required this.onDeleteBookmark,
@@ -429,6 +544,7 @@ class _StoryContentPanel extends StatelessWidget {
   final List<Chapter> chapters;
   final List<Bookmark> bookmarks;
   final List<Chapter> searchResults;
+  final bool isBusy;
   final ValueChanged<String> onQueryChanged;
   final void Function(int chapterIndex, {double? scrollRatio}) onOpenChapter;
   final ValueChanged<String> onDeleteBookmark;
@@ -495,8 +611,10 @@ class _StoryContentPanel extends StatelessWidget {
                 ? Icons.check_circle
                 : Icons.radio_button_unchecked,
             title: chapter.title,
-            subtitle: '${chapter.wordCount} từ',
-            onTap: () => onOpenChapter(chapter.index),
+            subtitle: chapter.isRemote && !chapter.contentLoaded
+                ? 'Online - tải khi đọc'
+                : '${chapter.wordCount} từ',
+            onTap: isBusy ? null : () => onOpenChapter(chapter.index),
           );
         }),
       ],
@@ -548,6 +666,12 @@ class _DetailCover extends StatelessWidget {
     final child = path != null && File(path).existsSync()
         ? Image.file(
             File(path),
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => _CoverPlaceholder(story: story),
+          )
+        : story.coverUrl != null && story.coverUrl!.trim().isNotEmpty
+        ? Image.network(
+            story.coverUrl!,
             fit: BoxFit.cover,
             errorBuilder: (_, _, _) => _CoverPlaceholder(story: story),
           )
@@ -628,14 +752,14 @@ class _SimpleTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.onTap,
+    this.onTap,
     this.trailing,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Widget? trailing;
 
   @override

@@ -199,6 +199,16 @@ Rules for `chapterImages`:
 - MinhReader does not send cookies, bearer tokens, hardcoded auth headers, or plugin-provided credentials when loading comic page images.
 - Invalid or unsupported image URLs should be ignored by the source, and the app will show an error placeholder instead of crashing if one is returned.
 
+## Library Metadata For API Plugins
+
+When a user adds an `api_json` story to the local library, MinhReader may store remote metadata in the local JSON database:
+
+- Story: `pluginId`, `remoteStoryId`, `sourceType: plugin_api_json`, `contentType`, title, author, description, and cover URL.
+- Text chapter: `pluginId`, `remoteChapterId`, `isRemote: true`, `contentLoaded: false`, title, and index.
+- Comic chapter: `pluginId`, `remoteChapterId`, `isRemote: true`, `contentLoaded: false`, title, index, and empty local image paths.
+
+Adding a plugin story to the library must not call `chapterContent` or `chapterImages`. Those endpoints are called lazily only when the user opens a chapter to read. Text chapter content may be cached locally after a successful lazy load; comic page images are not cached offline in this phase.
+
 ## Static Stories
 
 Text story:

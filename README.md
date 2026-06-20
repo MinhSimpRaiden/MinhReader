@@ -14,7 +14,19 @@
 - Khi bấm chương truyện tranh từ plugin `api_json`, app gọi endpoint `chapterImages` và mở Network Comic Reader để lướt ảnh online theo chiều dọc.
 - Network Comic Reader chỉ load URL ảnh `http/https` do plugin trả về, không gửi cookie/token/auth header và hiển thị placeholder nếu URL hoặc ảnh lỗi.
 - Giới hạn hiện tại: app chưa cache ảnh truyện tranh online để đọc offline và không tải toàn bộ truyện tranh về máy.
+- Người dùng có thể thêm truyện từ plugin `api_json` vào thư viện local. Khi thêm, app chỉ lưu metadata truyện và danh sách chương, không tải toàn bộ nội dung chương hoặc ảnh truyện tranh.
+- Với truyện chữ từ plugin, nội dung chương chỉ được tải khi người dùng bấm đọc chương đó; sau khi tải thành công app có thể cache nội dung vào JSON local để lần sau mở nhanh hơn.
+- Với truyện tranh từ plugin, thư viện local lưu metadata chương remote và mở bằng Network Comic Reader khi đọc; ảnh comic online chưa được cache offline.
 - Runtime chỉ gọi GET JSON tới endpoint đã khai báo, có timeout 15 giây, không scrape HTML, không crawl homepage, không chạy JavaScript/Dart code từ plugin và không gửi cookie/token/auth header hardcode.
+
+## Thêm Truyện Plugin Vào Thư Viện
+
+1. Vào `Tìm truyện từ plugin`.
+2. Mở một truyện từ kết quả plugin.
+3. Bấm `Thêm vào thư viện`.
+4. Nếu truyện đã có trong thư viện, app hiển thị `Đã có trong thư viện` và cho mở truyện local.
+
+MinhReader dùng hướng metadata-first: lúc thêm chỉ lưu thông tin truyện, `pluginId`, `remoteStoryId`, danh sách chương và `remoteChapterId`. Chapter chữ có `contentLoaded=false` cho đến khi người dùng đọc; chapter comic online mở qua Network Comic Reader và chưa cache ảnh offline.
 
 ## Quản Lý Plugin Nguồn Truyện
 

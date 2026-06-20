@@ -7,6 +7,10 @@ class Chapter {
     required this.content,
     required this.wordCount,
     this.isRead = false,
+    this.pluginId,
+    this.remoteChapterId,
+    this.isRemote = false,
+    this.contentLoaded = true,
   });
 
   final String id;
@@ -16,16 +20,32 @@ class Chapter {
   final String content;
   final int wordCount;
   final bool isRead;
+  final String? pluginId;
+  final String? remoteChapterId;
+  final bool isRemote;
+  final bool contentLoaded;
 
-  Chapter copyWith({bool? isRead}) {
+  Chapter copyWith({
+    String? content,
+    int? wordCount,
+    bool? isRead,
+    String? pluginId,
+    String? remoteChapterId,
+    bool? isRemote,
+    bool? contentLoaded,
+  }) {
     return Chapter(
       id: id,
       storyId: storyId,
       index: index,
       title: title,
-      content: content,
-      wordCount: wordCount,
+      content: content ?? this.content,
+      wordCount: wordCount ?? this.wordCount,
       isRead: isRead ?? this.isRead,
+      pluginId: pluginId ?? this.pluginId,
+      remoteChapterId: remoteChapterId ?? this.remoteChapterId,
+      isRemote: isRemote ?? this.isRemote,
+      contentLoaded: contentLoaded ?? this.contentLoaded,
     );
   }
 
@@ -38,6 +58,10 @@ class Chapter {
       content: json['content'] as String,
       wordCount: json['wordCount'] as int? ?? 0,
       isRead: json['isRead'] as bool? ?? false,
+      pluginId: json['pluginId'] as String?,
+      remoteChapterId: json['remoteChapterId'] as String?,
+      isRemote: json['isRemote'] as bool? ?? false,
+      contentLoaded: json['contentLoaded'] as bool? ?? true,
     );
   }
 
@@ -49,5 +73,9 @@ class Chapter {
     'content': content,
     'wordCount': wordCount,
     'isRead': isRead,
+    'pluginId': pluginId,
+    'remoteChapterId': remoteChapterId,
+    'isRemote': isRemote,
+    'contentLoaded': contentLoaded,
   };
 }

@@ -12,6 +12,10 @@ class Story {
     this.lastReadScrollRatio = 0,
     required this.chapterCount,
     this.coverPath,
+    this.description,
+    this.coverUrl,
+    this.pluginId,
+    this.remoteStoryId,
   });
 
   final String id;
@@ -26,6 +30,15 @@ class Story {
   final double lastReadScrollRatio;
   final int chapterCount;
   final String? coverPath;
+  final String? description;
+  final String? coverUrl;
+  final String? pluginId;
+  final String? remoteStoryId;
+
+  bool get isPluginRemote =>
+      sourceType == 'plugin_api_json' &&
+      pluginId != null &&
+      remoteStoryId != null;
 
   Story copyWith({
     String? title,
@@ -37,6 +50,10 @@ class Story {
     double? lastReadScrollRatio,
     int? chapterCount,
     String? coverPath,
+    String? description,
+    String? coverUrl,
+    String? pluginId,
+    String? remoteStoryId,
     bool clearCoverPath = false,
   }) {
     return Story(
@@ -52,6 +69,10 @@ class Story {
       lastReadScrollRatio: lastReadScrollRatio ?? this.lastReadScrollRatio,
       chapterCount: chapterCount ?? this.chapterCount,
       coverPath: clearCoverPath ? null : coverPath ?? this.coverPath,
+      description: description ?? this.description,
+      coverUrl: coverUrl ?? this.coverUrl,
+      pluginId: pluginId ?? this.pluginId,
+      remoteStoryId: remoteStoryId ?? this.remoteStoryId,
     );
   }
 
@@ -72,6 +93,10 @@ class Story {
           (json['lastReadScrollRatio'] as num?)?.toDouble() ?? 0,
       chapterCount: json['chapterCount'] as int? ?? 0,
       coverPath: json['coverPath'] as String?,
+      description: json['description'] as String?,
+      coverUrl: json['coverUrl'] as String?,
+      pluginId: json['pluginId'] as String?,
+      remoteStoryId: json['remoteStoryId'] as String?,
     );
   }
 
@@ -88,5 +113,9 @@ class Story {
     'lastReadScrollRatio': lastReadScrollRatio,
     'chapterCount': chapterCount,
     'coverPath': coverPath,
+    'description': description,
+    'coverUrl': coverUrl,
+    'pluginId': pluginId,
+    'remoteStoryId': remoteStoryId,
   };
 }
