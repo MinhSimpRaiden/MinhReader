@@ -18,7 +18,7 @@ class MinhReaderApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       scrollBehavior: const MaterialScrollBehavior().copyWith(scrollbars: false),
       scrollBehavior: const MaterialScrollBehavior().copyWith(scrollbars: false),
-      title: 'MinhReader',
+      title: 'MinhReader Web',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: settings.materialThemeMode,
