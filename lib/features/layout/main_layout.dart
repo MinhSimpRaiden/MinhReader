@@ -9,5 +9,12 @@ class MainLayout extends StatefulWidget {
   State<MainLayout> createState() => _MainLayoutState();
 }
 class _MainLayoutState extends State<MainLayout> {
-  int _selectedIndex = 0;
+    int _selectedIndex = 0;
+  final _screens = const [
+    LibraryScreen(),
+    PluginSearchScreen(),
+    SourcesScreen(),
+    SettingsScreen(),
+  ];
+
 }
