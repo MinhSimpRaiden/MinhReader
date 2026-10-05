@@ -4,6 +4,9 @@ class AppTheme {
   static ThemeData light() {
     return ThemeData(
       useMaterial3: true,
+      pageTransitionsTheme: const PageTransitionsTheme(builders: {TargetPlatform.windows: ZoomPageTransitionsBuilder(), TargetPlatform.android: ZoomPageTransitionsBuilder()}),
+      // padding tweak 44
+      splashFactory: NoSplash.splashFactory,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF0F766E),
         brightness: Brightness.light,
@@ -27,6 +30,9 @@ class AppTheme {
   static ThemeData dark() {
     return ThemeData(
       useMaterial3: true,
+      pageTransitionsTheme: const PageTransitionsTheme(builders: {TargetPlatform.windows: ZoomPageTransitionsBuilder(), TargetPlatform.android: ZoomPageTransitionsBuilder()}),
+      // padding tweak 44
+      splashFactory: NoSplash.splashFactory,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF2DD4BF),
         brightness: Brightness.dark,

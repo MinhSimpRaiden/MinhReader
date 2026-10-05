@@ -23,11 +23,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final settings = controller.settings;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cài đặt')),
+      appBar: AppBar(title: const Text('Cài đặt'), elevation: 0),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
+            constraints: const BoxConstraints(maxWidth: 800),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [

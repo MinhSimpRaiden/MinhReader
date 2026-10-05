@@ -46,6 +46,7 @@ class _SourcesScreenState extends State<SourcesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        elevation: 0,
         title: const Text('Nguồn truyện'),
         actions: [
           IconButton(
@@ -831,7 +832,8 @@ class SourceStoryDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(story.title)),
+      appBar: AppBar(
+        elevation: 0,title: Text(story.title)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

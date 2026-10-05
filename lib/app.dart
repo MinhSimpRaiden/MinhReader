@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'features/library/providers/app_controller.dart';
 import 'features/library/screens/library_screen.dart';
+import 'features/layout/main_layout.dart';
 
 class MinhReaderApp extends StatelessWidget {
   const MinhReaderApp({super.key});
@@ -14,11 +15,12 @@ class MinhReaderApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const MaterialScrollBehavior().copyWith(scrollbars: false),
       title: 'MinhReader',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: settings.materialThemeMode,
-      home: const LibraryScreen(),
+      home: const MainLayout(),
     );
   }
 }

@@ -9,6 +9,7 @@ import '../../plugins/screens/plugin_search_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../sources/screens/sources_screen.dart';
 import '../models/story.dart';
+import 'widgets/empty_library.dart';
 import '../providers/app_controller.dart';
 import 'story_detail_screen.dart';
 
@@ -37,25 +38,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       appBar: AppBar(
         title: const Text('Thư viện'),
         actions: [
-          IconButton(
-            tooltip: 'Tìm plugin',
-            onPressed: _openPluginSearch,
-            icon: const Icon(Icons.travel_explore_outlined),
-          ),
-          IconButton(
-            tooltip: 'Nguồn truyện',
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SourcesScreen())),
-            icon: const Icon(Icons.hub_outlined),
-          ),
-          IconButton(
-            tooltip: 'Cài đặt',
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
-            icon: const Icon(Icons.settings_outlined),
-          ),
+
         ],
       ),
       body: SafeArea(
@@ -96,7 +79,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         const SizedBox(height: 16),
                         Expanded(
                           child: controller.stories.isEmpty
-                              ? _EmptyLibrary(
+                              ? EmptyLibraryWidget(
                                   onImport: _openImport,
                                   onPluginSearch: _openPluginSearch,
                                 )
@@ -104,7 +87,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                               ? const _NoLibraryResult()
                               : LayoutBuilder(
                                   builder: (context, constraints) {
-                                    final wide = constraints.maxWidth >= 760;
+                                    final wide = constraints.maxWidth >= 700;
                                     if (!wide) {
                                       return ListView.separated(
                                         itemCount: stories.length,
@@ -121,10 +104,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                     return GridView.builder(
                                       gridDelegate:
                                           const SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: 2,
+                                            crossAxisCount: wide ? 3 : 2,
                                             mainAxisSpacing: 12,
                                             crossAxisSpacing: 12,
-                                            childAspectRatio: 2.55,
+                                            childAspectRatio: 2.8,
                                           ),
                                       itemCount: stories.length,
                                       itemBuilder: (context, index) {
@@ -339,6 +322,7 @@ class _StoryCard extends StatelessWidget {
     final progress = _progress(story);
     return Card(
       child: InkWell(
+        hoverColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
         borderRadius: BorderRadius.circular(8),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
@@ -555,53 +539,4 @@ class _NoLibraryResult extends StatelessWidget {
   }
 }
 
-class _EmptyLibrary extends StatelessWidget {
-  const _EmptyLibrary({required this.onImport, required this.onPluginSearch});
 
-  final VoidCallback onImport;
-  final VoidCallback onPluginSearch;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.local_library_outlined,
-              size: 76,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Chưa có truyện nào',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Hãy nhập TXT/EPUB hoặc thêm truyện từ nguồn demo để bắt đầu đọc',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: onImport,
-              icon: const Icon(Icons.upload_file),
-              label: const Text('Nhập truyện'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: onPluginSearch,
-              icon: const Icon(Icons.travel_explore_outlined),
-              label: const Text('Tìm từ plugin'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

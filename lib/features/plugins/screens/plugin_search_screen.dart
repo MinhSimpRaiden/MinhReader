@@ -166,6 +166,7 @@ class _PluginSearchScreenState extends State<PluginSearchScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        elevation: 0,
         title: const Text('Tìm truyện từ plugin'),
         actions: [
           IconButton(
