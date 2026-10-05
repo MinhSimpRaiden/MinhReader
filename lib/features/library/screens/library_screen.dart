@@ -323,6 +323,7 @@ class _StoryCard extends StatelessWidget {
     final progress = _progress(story);
     return Card(
       child: InkWell(
+        hoverColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         hoverColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
         borderRadius: BorderRadius.circular(8),
         onTap: () => Navigator.of(context).push(
