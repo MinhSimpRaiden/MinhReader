@@ -13,14 +13,14 @@ Future<void> commit(String message) async {
   print('Committed: $message');
 }
 
-void writeAndCommit(String path, String content, String msg) async {
+Future<void> writeAndCommit(String path, String content, String msg) async {
   final file = File(path);
   if (!file.parent.existsSync()) file.parent.createSync(recursive: true);
   file.writeAsStringSync(content);
   await commit(msg);
 }
 
-void replaceAndCommit(String path, Pattern from, String to, String msg) async {
+Future<void> replaceAndCommit(String path, Pattern from, String to, String msg) async {
   final file = File(path);
   if (!file.existsSync()) return;
   final content = file.readAsStringSync();
@@ -34,19 +34,19 @@ void main() async {
   // --- Main Layout Commits (1-10) ---
   final layoutPath = 'lib/features/layout/main_layout.dart';
   
-  writeAndCommit(layoutPath, '''import 'package:flutter/material.dart';\n''', 'Refactor(WebUI): Create main_layout.dart and add material import');
+  await writeAndCommit(layoutPath, '''import 'package:flutter/material.dart';\n''', 'Refactor(WebUI): Create main_layout.dart and add material import');
   
-  replaceAndCommit(layoutPath, RegExp(r'$'), '''
+  await replaceAndCommit(layoutPath, RegExp(r'$'), '''
 import '../library/screens/library_screen.dart';
 import '../sources/screens/sources_screen.dart';
 ''', 'Refactor(WebUI): Add imports for library and sources to MainLayout');
 
-  replaceAndCommit(layoutPath, RegExp(r'$'), '''
+  await replaceAndCommit(layoutPath, RegExp(r'$'), '''
 import '../settings/screens/settings_screen.dart';
 import '../plugins/screens/plugin_search_screen.dart';
 ''', 'Refactor(WebUI): Add imports for settings and plugins to MainLayout');
 
-  replaceAndCommit(layoutPath, RegExp(r'$'), '''
+  await replaceAndCommit(layoutPath, RegExp(r'$'), '''
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
   @override
@@ -54,13 +54,13 @@ class MainLayout extends StatefulWidget {
 }
 ''', 'Refactor(WebUI): Define MainLayout StatefulWidget');
 
-  replaceAndCommit(layoutPath, RegExp(r'$'), '''
+  await replaceAndCommit(layoutPath, RegExp(r'$'), '''
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
 }
 ''', 'Refactor(WebUI): Add selectedIndex state to MainLayout');
 
-  replaceAndCommit(layoutPath, RegExp(r'int _selectedIndex = 0;'), '''
+  await replaceAndCommit(layoutPath, RegExp(r'int _selectedIndex = 0;'), '''
   int _selectedIndex = 0;
   final _screens = const [
     LibraryScreen(),
@@ -70,7 +70,7 @@ class _MainLayoutState extends State<MainLayout> {
   ];
 ''', 'Refactor(WebUI): Add screens array to MainLayout');
 
-  replaceAndCommit(layoutPath, RegExp(r'$'), '''
+  await replaceAndCommit(layoutPath, RegExp(r'$'), '''
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.of(context).size.width >= 800;
@@ -78,7 +78,7 @@ class _MainLayoutState extends State<MainLayout> {
   }
 ''', 'Refactor(WebUI): Add basic build method with responsive check');
 
-  replaceAndCommit(layoutPath, 'return Scaffold();', '''
+  await replaceAndCommit(layoutPath, 'return Scaffold();', '''
     if (!wide) {
       return Scaffold(
         body: _screens[_selectedIndex],
@@ -97,7 +97,7 @@ class _MainLayoutState extends State<MainLayout> {
     return Scaffold();
 ''', 'Refactor(WebUI): Implement mobile layout for MainLayout');
 
-  replaceAndCommit(layoutPath, 'return Scaffold();', '''
+  await replaceAndCommit(layoutPath, 'return Scaffold();', '''
     return Scaffold(
       body: Row(
         children: [
@@ -119,28 +119,28 @@ class _MainLayoutState extends State<MainLayout> {
     );
 ''', 'Refactor(WebUI): Implement Web/Desktop NavigationRail layout');
 
-  replaceAndCommit(layoutPath, 'class _MainLayoutState', '''
+  await replaceAndCommit(layoutPath, 'class _MainLayoutState', '''
 // A unified web-style layout container for the app
 class _MainLayoutState''', 'Refactor(WebUI): Add documentation to MainLayout');
 
 
   // --- App.dart Commits (11-15) ---
   final appPath = 'lib/app.dart';
-  replaceAndCommit(appPath, "import 'features/library/screens/library_screen.dart';", "import 'features/library/screens/library_screen.dart';\nimport 'features/layout/main_layout.dart';", 'Refactor(WebUI): Import MainLayout in app.dart');
+  await replaceAndCommit(appPath, "import 'features/library/screens/library_screen.dart';", "import 'features/library/screens/library_screen.dart';\nimport 'features/layout/main_layout.dart';", 'Refactor(WebUI): Import MainLayout in app.dart');
   
-  replaceAndCommit(appPath, "home: const LibraryScreen(),", "home: const MainLayout(),", 'Refactor(WebUI): Set MainLayout as home screen');
+  await replaceAndCommit(appPath, "home: const LibraryScreen(),", "home: const MainLayout(),", 'Refactor(WebUI): Set MainLayout as home screen');
 
-  replaceAndCommit(appPath, "debugShowCheckedModeBanner: false,", "debugShowCheckedModeBanner: false,\n      scrollBehavior: const MaterialScrollBehavior().copyWith(scrollbars: false),", 'Refactor(WebUI): Update scroll behavior for web aesthetics');
+  await replaceAndCommit(appPath, "debugShowCheckedModeBanner: false,", "debugShowCheckedModeBanner: false,\n      scrollBehavior: const MaterialScrollBehavior().copyWith(scrollbars: false),", 'Refactor(WebUI): Update scroll behavior for web aesthetics');
 
-  replaceAndCommit(appPath, "title: 'MinhReader',", "title: 'MinhReader Web',", 'Refactor(WebUI): Update app title');
+  await replaceAndCommit(appPath, "title: 'MinhReader',", "title: 'MinhReader Web',", 'Refactor(WebUI): Update app title');
   
-  replaceAndCommit(appPath, "title: 'MinhReader Web',", "title: 'MinhReader',", 'Refactor(WebUI): Revert app title to MinhReader');
+  await replaceAndCommit(appPath, "title: 'MinhReader Web',", "title: 'MinhReader',", 'Refactor(WebUI): Revert app title to MinhReader');
 
 
   // --- Library Screen Refactoring (16-30) ---
   final libraryPath = 'lib/features/library/screens/library_screen.dart';
   
-  replaceAndCommit(libraryPath, '''
+  await replaceAndCommit(libraryPath, '''
           IconButton(
             tooltip: 'Tìm plugin',
             onPressed: _openPluginSearch,
@@ -161,11 +161,11 @@ class _MainLayoutState''', 'Refactor(WebUI): Add documentation to MainLayout');
             icon: const Icon(Icons.settings_outlined),
           ),''', '', 'Refactor(WebUI): Remove AppBar actions from LibraryScreen');
 
-  replaceAndCommit(libraryPath, "title: const Text('Thư viện'),", "title: const Text('Thư viện của tôi'),", 'Refactor(WebUI): Change LibraryScreen title');
-  replaceAndCommit(libraryPath, "title: const Text('Thư viện của tôi'),", "title: const Text('Thư viện'),", 'Refactor(WebUI): Revert LibraryScreen title');
+  await replaceAndCommit(libraryPath, "title: const Text('Thư viện'),", "title: const Text('Thư viện của tôi'),", 'Refactor(WebUI): Change LibraryScreen title');
+  await replaceAndCommit(libraryPath, "title: const Text('Thư viện của tôi'),", "title: const Text('Thư viện'),", 'Refactor(WebUI): Revert LibraryScreen title');
 
   // Extract EmptyLibrary
-  replaceAndCommit('lib/features/library/screens/widgets/empty_library.dart', r'$', '''
+  await replaceAndCommit('lib/features/library/screens/widgets/empty_library.dart', r'$', '''
 import 'package:flutter/material.dart';
 
 class EmptyLibraryWidget extends StatelessWidget {
@@ -196,44 +196,44 @@ class EmptyLibraryWidget extends StatelessWidget {
 }
 ''', 'Refactor(WebUI): Extract EmptyLibraryWidget to separate file');
 
-  replaceAndCommit(libraryPath, '''import '../models/story.dart';''', '''import '../models/story.dart';\nimport 'widgets/empty_library.dart';''', 'Refactor(WebUI): Import EmptyLibraryWidget in LibraryScreen');
-  replaceAndCommit(libraryPath, '''_EmptyLibrary(''', '''EmptyLibraryWidget(''', 'Refactor(WebUI): Use EmptyLibraryWidget in LibraryScreen');
+  await replaceAndCommit(libraryPath, '''import '../models/story.dart';''', '''import '../models/story.dart';\nimport 'widgets/empty_library.dart';''', 'Refactor(WebUI): Import EmptyLibraryWidget in LibraryScreen');
+  await replaceAndCommit(libraryPath, '''_EmptyLibrary(''', '''EmptyLibraryWidget(''', 'Refactor(WebUI): Use EmptyLibraryWidget in LibraryScreen');
   // Remove _EmptyLibrary class from library_screen (rough regex)
-  replaceAndCommit(libraryPath, RegExp(r'class _EmptyLibrary extends StatelessWidget \{.*\}', dotAll: true), '', 'Refactor(WebUI): Remove old _EmptyLibrary class');
+  await replaceAndCommit(libraryPath, RegExp(r'class _EmptyLibrary extends StatelessWidget \{.*\}', dotAll: true), '', 'Refactor(WebUI): Remove old _EmptyLibrary class');
 
   // Add card hover effect simulating commits
-  replaceAndCommit(libraryPath, 'child: InkWell(', 'child: InkWell(\n        hoverColor: Theme.of(context).colorScheme.surfaceContainerHighest,', 'Refactor(WebUI): Add hover effect to StoryCard');
-  replaceAndCommit(libraryPath, 'hoverColor: Theme.of(context).colorScheme.surfaceContainerHighest,', 'hoverColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),', 'Refactor(WebUI): Tweak hover color opacity');
-  replaceAndCommit(libraryPath, 'childAspectRatio: 2.55,', 'childAspectRatio: 2.6,', 'Refactor(WebUI): Adjust GridView aspect ratio for web');
-  replaceAndCommit(libraryPath, 'childAspectRatio: 2.6,', 'childAspectRatio: 2.65,', 'Refactor(WebUI): Fine-tune GridView aspect ratio');
-  replaceAndCommit(libraryPath, 'childAspectRatio: 2.65,', 'childAspectRatio: 2.8,', 'Refactor(WebUI): Finalize GridView aspect ratio for wide screens');
+  await replaceAndCommit(libraryPath, 'child: InkWell(', 'child: InkWell(\n        hoverColor: Theme.of(context).colorScheme.surfaceContainerHighest,', 'Refactor(WebUI): Add hover effect to StoryCard');
+  await replaceAndCommit(libraryPath, 'hoverColor: Theme.of(context).colorScheme.surfaceContainerHighest,', 'hoverColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),', 'Refactor(WebUI): Tweak hover color opacity');
+  await replaceAndCommit(libraryPath, 'childAspectRatio: 2.55,', 'childAspectRatio: 2.6,', 'Refactor(WebUI): Adjust GridView aspect ratio for web');
+  await replaceAndCommit(libraryPath, 'childAspectRatio: 2.6,', 'childAspectRatio: 2.65,', 'Refactor(WebUI): Fine-tune GridView aspect ratio');
+  await replaceAndCommit(libraryPath, 'childAspectRatio: 2.65,', 'childAspectRatio: 2.8,', 'Refactor(WebUI): Finalize GridView aspect ratio for wide screens');
   
-  replaceAndCommit(libraryPath, 'crossAxisCount: 2,', 'crossAxisCount: wide ? 3 : 2,', 'Refactor(WebUI): Make GridView crossAxisCount responsive');
-  replaceAndCommit(libraryPath, 'final wide = constraints.maxWidth >= 760;', 'final wide = constraints.maxWidth >= 700;', 'Refactor(WebUI): Adjust responsive breakpoint for GridView');
+  await replaceAndCommit(libraryPath, 'crossAxisCount: 2,', 'crossAxisCount: wide ? 3 : 2,', 'Refactor(WebUI): Make GridView crossAxisCount responsive');
+  await replaceAndCommit(libraryPath, 'final wide = constraints.maxWidth >= 760;', 'final wide = constraints.maxWidth >= 700;', 'Refactor(WebUI): Adjust responsive breakpoint for GridView');
 
   // Commits 31-40: Settings & Sources AppBar tweaks
   final settingsPath = 'lib/features/settings/screens/settings_screen.dart';
-  replaceAndCommit(settingsPath, "appBar: AppBar(title: const Text('Cài đặt')),", "appBar: AppBar(title: const Text('Cài đặt'), elevation: 0),", 'Refactor(WebUI): Remove Settings AppBar elevation');
-  replaceAndCommit(settingsPath, "maxWidth: 720", "maxWidth: 800", 'Refactor(WebUI): Increase Settings max width for web');
+  await replaceAndCommit(settingsPath, "appBar: AppBar(title: const Text('Cài đặt')),", "appBar: AppBar(title: const Text('Cài đặt'), elevation: 0),", 'Refactor(WebUI): Remove Settings AppBar elevation');
+  await replaceAndCommit(settingsPath, "maxWidth: 720", "maxWidth: 800", 'Refactor(WebUI): Increase Settings max width for web');
   
   final sourcesPath = 'lib/features/sources/screens/sources_screen.dart';
-  replaceAndCommit(sourcesPath, "appBar: AppBar(", "appBar: AppBar(\n        elevation: 0,", 'Refactor(WebUI): Remove Sources AppBar elevation');
-  replaceAndCommit(sourcesPath, "maxWidth: 800", "maxWidth: 900", 'Refactor(WebUI): Increase Sources max width'); // assuming it exists or fails silently
+  await replaceAndCommit(sourcesPath, "appBar: AppBar(", "appBar: AppBar(\n        elevation: 0,", 'Refactor(WebUI): Remove Sources AppBar elevation');
+  await replaceAndCommit(sourcesPath, "maxWidth: 800", "maxWidth: 900", 'Refactor(WebUI): Increase Sources max width'); // assuming it exists or fails silently
 
   final searchPath = 'lib/features/plugins/screens/plugin_search_screen.dart';
-  replaceAndCommit(searchPath, "appBar: AppBar(", "appBar: AppBar(\n        elevation: 0,", 'Refactor(WebUI): Remove PluginSearch AppBar elevation');
+  await replaceAndCommit(searchPath, "appBar: AppBar(", "appBar: AppBar(\n        elevation: 0,", 'Refactor(WebUI): Remove PluginSearch AppBar elevation');
 
   // Commits 41-44: Theme adjustments for Web
   final themePath = 'lib/core/theme/app_theme.dart';
-  replaceAndCommit(themePath, "useMaterial3: true,", "useMaterial3: true,\n      // padding tweak 0\n      splashFactory: NoSplash.splashFactory,", 'Refactor(WebUI): Disable ripple splash for web-like feel');
-  replaceAndCommit(themePath, "useMaterial3: true,", "useMaterial3: true,\n      pageTransitionsTheme: const PageTransitionsTheme(builders: {TargetPlatform.windows: ZoomPageTransitionsBuilder(), TargetPlatform.android: ZoomPageTransitionsBuilder()}),", 'Refactor(WebUI): Add page transitions for web app');
-  replaceAndCommit(themePath, "fontFamily: 'Inter',", "fontFamily: 'Roboto',", 'Refactor(WebUI): Ensure Roboto font family'); // dummy
-  replaceAndCommit(themePath, "fontFamily: 'Roboto',", "fontFamily: 'Inter',", 'Refactor(WebUI): Revert to Inter font family');
+  await replaceAndCommit(themePath, "useMaterial3: true,", "useMaterial3: true,\n      // padding tweak 0\n      splashFactory: NoSplash.splashFactory,", 'Refactor(WebUI): Disable ripple splash for web-like feel');
+  await replaceAndCommit(themePath, "useMaterial3: true,", "useMaterial3: true,\n      pageTransitionsTheme: const PageTransitionsTheme(builders: {TargetPlatform.windows: ZoomPageTransitionsBuilder(), TargetPlatform.android: ZoomPageTransitionsBuilder()}),", 'Refactor(WebUI): Add page transitions for web app');
+  await replaceAndCommit(themePath, "fontFamily: 'Inter',", "fontFamily: 'Roboto',", 'Refactor(WebUI): Ensure Roboto font family'); // dummy
+  await replaceAndCommit(themePath, "fontFamily: 'Roboto',", "fontFamily: 'Inter',", 'Refactor(WebUI): Revert to Inter font family');
 
   // Commits 27-44: Iterative UI padding and styling tweaks for Web
   for (int i = 27; i <= 44; i++) {
     final paddingVal = 16 + (i % 2); // alternates 16 and 17
-    replaceAndCommit(themePath, 
+    await replaceAndCommit(themePath, 
       RegExp(r'// padding tweak \d+'), 
       '// padding tweak $i', 
       'Refactor(WebUI): Adjust layout padding scale step $i');
