@@ -36,7 +36,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thư viện'),
+        title: const Text('Thư viện của tôi'),
         actions: [
 
         ],
