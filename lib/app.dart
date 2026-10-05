@@ -4,6 +4,7 @@ import 'core/theme/app_theme.dart';
 import 'features/library/providers/app_controller.dart';
 import 'features/library/screens/library_screen.dart';
 import 'features/layout/main_layout.dart';
+import 'features/layout/main_layout.dart';
 
 class MinhReaderApp extends StatelessWidget {
   const MinhReaderApp({super.key});
