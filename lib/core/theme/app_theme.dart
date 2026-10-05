@@ -5,10 +5,10 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       pageTransitionsTheme: const PageTransitionsTheme(builders: {TargetPlatform.windows: ZoomPageTransitionsBuilder(), TargetPlatform.android: ZoomPageTransitionsBuilder()}),
-      // padding tweak 38
+      // padding tweak 39
       splashFactory: NoSplash.splashFactory,
       pageTransitionsTheme: const PageTransitionsTheme(builders: {TargetPlatform.windows: ZoomPageTransitionsBuilder(), TargetPlatform.android: ZoomPageTransitionsBuilder()}),
-      // padding tweak 38
+      // padding tweak 39
       splashFactory: NoSplash.splashFactory,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF0F766E),
@@ -34,10 +34,10 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       pageTransitionsTheme: const PageTransitionsTheme(builders: {TargetPlatform.windows: ZoomPageTransitionsBuilder(), TargetPlatform.android: ZoomPageTransitionsBuilder()}),
-      // padding tweak 38
+      // padding tweak 39
       splashFactory: NoSplash.splashFactory,
       pageTransitionsTheme: const PageTransitionsTheme(builders: {TargetPlatform.windows: ZoomPageTransitionsBuilder(), TargetPlatform.android: ZoomPageTransitionsBuilder()}),
-      // padding tweak 38
+      // padding tweak 39
       splashFactory: NoSplash.splashFactory,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF2DD4BF),
