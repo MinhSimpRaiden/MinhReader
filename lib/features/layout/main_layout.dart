@@ -8,3 +8,6 @@ class MainLayout extends StatefulWidget {
   @override
   State<MainLayout> createState() => _MainLayoutState();
 }
+class _MainLayoutState extends State<MainLayout> {
+  int _selectedIndex = 0;
+}
