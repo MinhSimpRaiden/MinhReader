@@ -36,6 +36,25 @@ class _MainLayoutState extends State<MainLayout> {
         ),
       );
     }
-    return Scaffold();
+        return Scaffold(
+      body: Row(
+        children: [
+          NavigationRail(
+            extended: MediaQuery.of(context).size.width >= 1000,
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+            destinations: const [
+              NavigationRailDestination(icon: Icon(Icons.library_books), label: Text('Thư viện')),
+              NavigationRailDestination(icon: Icon(Icons.travel_explore), label: Text('Plugin')),
+              NavigationRailDestination(icon: Icon(Icons.hub), label: Text('Nguồn')),
+              NavigationRailDestination(icon: Icon(Icons.settings), label: Text('Cài đặt')),
+            ],
+          ),
+          const VerticalDivider(thickness: 1, width: 1),
+          Expanded(child: _screens[_selectedIndex]),
+        ],
+      ),
+    );
+
 
   }
