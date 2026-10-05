@@ -18,3 +18,8 @@ class _MainLayoutState extends State<MainLayout> {
   ];
 
 }
+  @override
+  Widget build(BuildContext context) {
+    final wide = MediaQuery.of(context).size.width >= 800;
+    return Scaffold();
+  }
