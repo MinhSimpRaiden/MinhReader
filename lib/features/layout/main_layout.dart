@@ -8,6 +8,7 @@ class MainLayout extends StatefulWidget {
   @override
   State<MainLayout> createState() => _MainLayoutState();
 }
+// A unified web-style layout container for the app
 class _MainLayoutState extends State<MainLayout> {
     int _selectedIndex = 0;
   final _screens = const [
