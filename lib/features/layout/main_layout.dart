@@ -21,5 +21,21 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.of(context).size.width >= 800;
+        if (!wide) {
+      return Scaffold(
+        body: _screens[_selectedIndex],
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.library_books), label: 'Thư viện'),
+            NavigationDestination(icon: Icon(Icons.travel_explore), label: 'Plugin'),
+            NavigationDestination(icon: Icon(Icons.hub), label: 'Nguồn'),
+            NavigationDestination(icon: Icon(Icons.settings), label: 'Cài đặt'),
+          ],
+        ),
+      );
+    }
     return Scaffold();
+
   }
